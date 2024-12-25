@@ -1,11 +1,11 @@
 import streamlit as st
-import pandas as pd
+import pandas as pandita
 
 # Load the Google Sheet data
 @st.cache_data
 def load_data():
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?output=csv"
-    data = pd.read_csv(url)
+    data = pandita.read_csv(url)
     data['Port Type'] = data['Port Type'].apply(lambda x: x.split(", ") if isinstance(x, str) else x)
     data['Test Details'] = data['Test Details'].apply(lambda x: x.split(", ") if isinstance(x, str) else x)
     return data
