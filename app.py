@@ -14,16 +14,16 @@ def load_data():
         return pd.DataFrame()  # Return an empty DataFrame on failure
 
 # Filter the database based on user selections
-def filter_database(df, product_feature, entity, port_type, voltage_type, voltages):
-    if product_feature != "All":
+def filter_database(df, product_feature=None, entity=None, port_type=None, voltage_type=None, voltages=None):
+    if product_feature and product_feature != "All":
         df = df[df['PRODUCT_FEATURE'] == product_feature]
-    if entity != "All":
+    if entity and entity != "All":
         df = df[df['ENTITY'] == entity]
-    if port_type != "All":
+    if port_type and port_type != "All":
         df = df[df['PORT_TYPE'] == port_type]
-    if voltage_type != "All":
+    if voltage_type and voltage_type != "All":
         df = df[df['VOLTAGE_TYPE'] == voltage_type]
-    if voltages != "All":
+    if voltages and voltages != "All":
         df = df[df['VOLTAGES'] == voltages]
     return df
 
@@ -59,13 +59,26 @@ def main():
     # Sidebar dropdown menus
     st.sidebar.header("Filter Options")
     product_feature = st.sidebar.selectbox("Select PRODUCT_FEATURE:", ["All"] + df['PRODUCT_FEATURE'].unique().tolist())
-    entity = st.sidebar.selectbox("Select ENTITY:", ["All"] + df['ENTITY'].unique().tolist())
-    port_type = st.sidebar.selectbox("Select PORT_TYPE:", ["All"] + df['PORT_TYPE'].unique().tolist())
-    voltage_type = st.sidebar.selectbox("Select VOLTAGE_TYPE:", ["All"] + df['VOLTAGE_TYPE'].unique().tolist())
-    voltages = st.sidebar.selectbox("Select VOLTAGES:", ["All"] + df['VOLTAGES'].unique().tolist())
+    filtered_df = filter_database(df, product_feature=product_feature)
 
-    # Filter data based on selections
-    filtered_df = filter_database(df, product_feature, entity, port_type, voltage_type, voltages)
+    entity = st.sidebar.selectbox("Select ENTITY:", ["All"] + filtered_df['ENTITY'].unique().tolist())
+    filtered_df = filter_database(filtered_df, entity=entity)
+
+    port_type = st.sidebar.selectbox("Select PORT_TYPE:", ["All"] + filtered_df['PORT_TYPE'].unique().tolist())
+    filtered_df = filter_database(filtered_df, port_type=port_type)
+
+    voltage_type = st.sidebar.selectbox("Select VOLTAGE_TYPE:", ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist())
+    filtered_df = filter_database(filtered_df, voltage_type=voltage_type)
+
+    voltages = st.sidebar.selectbox(
+        "Select VOLTAGES:", 
+        ["All"] + filtered_df['VOLTAGES'].unique().tolist(), 
+        format_func=lambda x: x if x in filtered_df['VOLTAGES'].unique() else f"{x} (Unavailable)"
+    )
+    if voltages.endswith("(Unavailable)"):
+        st.sidebar.warning("Selected value is unavailable in the filtered table.")
+    else:
+        filtered_df = filter_database(filtered_df, voltages=voltages)
 
     # Display the results
     st.header("Generated Test Plan")
