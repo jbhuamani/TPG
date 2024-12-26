@@ -38,18 +38,14 @@ def generate_summary(df):
     summary_set = set()
     for _, row in df.iterrows():
         test_type = row.get('TEST_TYPE', "Not Available")
-        if test_type == "DC Ripple":
-            frequency = row.get('Frequency_[Hz]', "Not Available")
-            level = row.get('Level_[%]', "Not Available")
-            criteria = row.get('Criteria', "Not Available")
-            line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
-        elif test_type == "AC VDI":
+        if test_type == "AC VDI":
             applicability = row.get('Applicability', "Not Available")
             frequency = row.get('Frequency_[Hz]', "Not Available")
             reduction = row.get('Reduction_[%]', "Not Available")
             crossing = row.get('Crossing_[deg]', "Not Available")
             criteria = row.get('Criteria', "Not Available")
 
+            # Handle Duration values
             duration_cycles = row.get('Duration_[Cycles]')
             duration_ms = row.get('Duration_[ms]')
 
