@@ -4,7 +4,7 @@ import pandas as pd
 # Load the updated database
 @st.cache_data
 def load_data():
-    url = "https://docs.google.com/spreadsheets/d/your_google_sheet_id/export?format=csv"
+    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=0&single=true&output=csv"
     data = pd.read_csv(url)
     return data
 
