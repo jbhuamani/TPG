@@ -12,46 +12,74 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
-# Remove redundant lines and identify justifiable test cases
-def process_test_cases(df):
-    unique_cases = []
-    justifiable_cases = []
+# Filter the database based on user selections
+def filter_database(df, product_features=None, entities=None, port_types=None, voltage_types=None, voltages=None):
+    if product_features:
+        df = df[df['PRODUCT_FEATURE'].isin(product_features)]
+    if entities:
+        df = df[df['ENTITY'].isin(entities)]
+    if port_types:
+        df = df[df['PORT_TYPE'].isin(port_types)]
+    if voltage_types:
+        df = df[df['VOLTAGE_TYPE'].isin(voltage_types)]
+    if voltages:
+        df = df[df['VOLTAGES'].isin(voltages)]
+    return df
 
-    # Group by all columns except Criteria to detect redundancy
-    grouped = df.groupby(['Applicability', 'Frequency_[Hz]', 'Reduction_[%]', 'Duration_[Cycles]', 
-                          'Duration_[ms]', 'Crossing_[deg]', 'Criteria'])
+# Generate a summary of the test plan
+def generate_summary_and_justifiable(filtered_df):
+    if filtered_df.empty:
+        return "No test plan available for the selected criteria.", ""
 
-    # Create a mapping of stricter to less strict criteria
-    criteria_hierarchy = {'A': 1, 'B': 2, 'C': 3}  # Lower values are stricter
+    summary_lines = set()  # Use a set to avoid redundant lines
+    justifiable_lines = set()  # Separate section for justifiable lines
+    criteria_hierarchy = {"A": 1, "B": 2, "C": 3}  # Define criteria hierarchy
 
-    # Process each group
-    for _, group in grouped:
-        strictest_case = None
-        for _, row in group.iterrows():
-            if strictest_case is None or criteria_hierarchy[row['Criteria']] < criteria_hierarchy[strictest_case['Criteria']]:
-                if strictest_case is not None:
-                    justifiable_cases.append(strictest_case)
-                strictest_case = row
+    for _, row in filtered_df.iterrows():
+        if row['TEST_TYPE'] == "DC Ripple":
+            frequency = row['DCR_Freq_[Hz]']
+            level = row['DCR_Level_[%]']
+            criteria = row['DCR_Criteria']
+            summary_lines.add(f"DC Ripple: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}")
+        elif row['TEST_TYPE'] == "AC VDI":
+            applicability = row['ACV_Apply']
+            frequency = row['ACV_Freq_[Hz]']
+            reduction = row['ACV_Red_[%]']
+            duration_cycles = row['ACV_Dur_[Cycles]']
+            duration_ms = row['ACV_Dur_[ms]']
+            crossing = row['ACV_Cross_[deg]']
+            criteria = row['ACV_Criteria']
+            duration_str = f"{duration_cycles} cycles" if pd.notnull(duration_cycles) else ""
+            duration_str += f", {duration_ms} ms" if pd.notnull(duration_ms) else ""
+            line = (
+                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                f"Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}"
+            )
+
+            # Check if this line can be justified by a stricter one
+            stricter_line = (
+                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                f"Duration {duration_str}, Crossing {crossing} degrees, Criteria "
+                f"{list(criteria_hierarchy.keys())[list(criteria_hierarchy.values()).index(criteria_hierarchy[criteria] - 1)]}"
+            )
+            if stricter_line in summary_lines:
+                justifiable_lines.add(line)
             else:
-                justifiable_cases.append(row)
-        unique_cases.append(strictest_case)
+                summary_lines.add(line)
 
-    unique_df = pd.DataFrame(unique_cases)
-    justifiable_df = pd.DataFrame(justifiable_cases)
-    return unique_df, justifiable_df
+    # Format summaries with enumeration
+    summary = "\n".join([f"{i + 1}) {line}" for i, line in enumerate(sorted(summary_lines))])
+    justifiable = "\n".join([f"{i + 1}) {line}" for i, line in enumerate(sorted(justifiable_lines))])
 
-# Generate a formatted summary for display
-def generate_summary(df, title):
-    summary = f"### {title}\n"
-    for i, row in df.iterrows():
-        summary += (f"{i + 1}) AC VDI: Applicability {row['Applicability']}, Frequency {row['Frequency_[Hz]']} Hz, "
-                    f"Reduction {row['Reduction_[%]']}%, Duration {row['Duration_[Cycles]']} cycles, "
-                    f"{row['Duration_[ms]'] if pd.notnull(row['Duration_[ms]']) else '-'} ms, "
-                    f"Crossing {row['Crossing_[deg]']} degrees, Criteria {row['Criteria']}\n")
-    return summary
+    return summary, justifiable
+
+# Remove empty columns
+def remove_empty_columns(df):
+    return df.dropna(how="all", axis=1)
 
 # Main application
 def main():
+    st.set_page_config(layout="wide")
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
 
@@ -61,43 +89,55 @@ def main():
         st.error("No data available. Please check your database connection.")
         return
 
-    # Sidebar dropdown menus
+    # Sidebar multi-select menus
     st.sidebar.header("Filter Options")
-    product_feature = st.sidebar.multiselect("Select PRODUCT_FEATURE:", options=df['PRODUCT_FEATURE'].unique())
-    entity = st.sidebar.multiselect("Select ENTITY:", options=df['ENTITY'].unique())
-    port_type = st.sidebar.multiselect("Select PORT_TYPE:", options=df['PORT_TYPE'].unique())
-    voltage_type = st.sidebar.multiselect("Select VOLTAGE_TYPE:", options=df['VOLTAGE_TYPE'].unique())
-    voltages = st.sidebar.multiselect("Select VOLTAGES:", options=df['VOLTAGES'].unique())
+    product_features = st.sidebar.multiselect(
+        "Select PRODUCT_FEATURE:",
+        df['PRODUCT_FEATURE'].unique().tolist()
+    )
+    filtered_df = filter_database(df, product_features=product_features)
 
-    # Filter data
-    filtered_df = df
-    if product_feature:
-        filtered_df = filtered_df[filtered_df['PRODUCT_FEATURE'].isin(product_feature)]
-    if entity:
-        filtered_df = filtered_df[filtered_df['ENTITY'].isin(entity)]
-    if port_type:
-        filtered_df = filtered_df[filtered_df['PORT_TYPE'].isin(port_type)]
-    if voltage_type:
-        filtered_df = filtered_df[filtered_df['VOLTAGE_TYPE'].isin(voltage_type)]
-    if voltages:
-        filtered_df = filtered_df[filtered_df['VOLTAGES'].isin(voltages)]
+    entities = st.sidebar.multiselect(
+        "Select ENTITY:",
+        filtered_df['ENTITY'].unique().tolist()
+    )
+    filtered_df = filter_database(filtered_df, entities=entities)
 
-    # Display filtered data
+    port_types = st.sidebar.multiselect(
+        "Select PORT_TYPE:",
+        filtered_df['PORT_TYPE'].unique().tolist()
+    )
+    filtered_df = filter_database(filtered_df, port_types=port_types)
+
+    voltage_types = st.sidebar.multiselect(
+        "Select VOLTAGE_TYPE:",
+        filtered_df['VOLTAGE_TYPE'].unique().tolist()
+    )
+    filtered_df = filter_database(filtered_df, voltage_types=voltage_types)
+
+    voltages = st.sidebar.multiselect(
+        "Select VOLTAGES:",
+        filtered_df['VOLTAGES'].unique().tolist()
+    )
+    filtered_df = filter_database(filtered_df, voltages=voltages)
+
+    # Remove empty columns
+    filtered_df = remove_empty_columns(filtered_df)
+
+    # Display the table and the summary
     st.header("Generated Test Plan")
     if not filtered_df.empty:
-        st.dataframe(filtered_df)
-        
-        # Process test cases
-        unique_cases, justifiable_cases = process_test_cases(filtered_df)
+        st.write("The following test cases match your selection:")
+        st.dataframe(filtered_df, use_container_width=True)
 
-        # Generate summaries
-        summary = generate_summary(unique_cases, "Test Plan Summary")
-        justifiable_summary = generate_summary(justifiable_cases, "Justifiable")
+        # Generate and display the test plan summary
+        st.subheader("Test Plan Summary")
+        summary, justifiable = generate_summary_and_justifiable(filtered_df)
+        st.text(summary)
 
-        # Display summaries
-        st.markdown(summary)
-        if not justifiable_cases.empty:
-            st.markdown(justifiable_summary)
+        if justifiable:
+            st.subheader("Justifiable Test Cases")
+            st.text(justifiable)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
 
