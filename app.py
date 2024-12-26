@@ -12,24 +12,17 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
-# Automatically deselect "All" when another option is selected
-def auto_deselect(selection):
-    """Ensure 'All' is deselected if any other item is selected."""
-    if "All" in selection and len(selection) > 1:
-        selection.remove("All")
-    return selection
-
 # Filter the database based on user selections
 def filter_database(df, product_features=None, entities=None, port_types=None, voltage_types=None, voltages=None):
-    if product_features and "All" not in product_features:
+    if product_features:
         df = df[df['PRODUCT_FEATURE'].isin(product_features)]
-    if entities and "All" not in entities:
+    if entities:
         df = df[df['ENTITY'].isin(entities)]
-    if port_types and "All" not in port_types:
+    if port_types:
         df = df[df['PORT_TYPE'].isin(port_types)]
-    if voltage_types and "All" not in voltage_types:
+    if voltage_types:
         df = df[df['VOLTAGE_TYPE'].isin(voltage_types)]
-    if voltages and "All" not in voltages:
+    if voltages:
         df = df[df['VOLTAGES'].isin(voltages)]
     return df
 
@@ -49,47 +42,37 @@ def main():
         st.error("No data available. Please check your database connection.")
         return
 
-    # Sidebar multi-select menus with "All" auto-deselect logic
+    # Sidebar multi-select menus with no preselection
     st.sidebar.header("Filter Options")
 
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
-        ["All"] + df['PRODUCT_FEATURE'].unique().tolist(),
-        default=["All"]
+        df['PRODUCT_FEATURE'].unique().tolist()
     )
-    product_features = auto_deselect(product_features)
     filtered_df = filter_database(df, product_features=product_features)
 
     entities = st.sidebar.multiselect(
         "Select ENTITY:",
-        ["All"] + filtered_df['ENTITY'].unique().tolist(),
-        default=["All"]
+        filtered_df['ENTITY'].unique().tolist()
     )
-    entities = auto_deselect(entities)
     filtered_df = filter_database(filtered_df, entities=entities)
 
     port_types = st.sidebar.multiselect(
         "Select PORT_TYPE:",
-        ["All"] + filtered_df['PORT_TYPE'].unique().tolist(),
-        default=["All"]
+        filtered_df['PORT_TYPE'].unique().tolist()
     )
-    port_types = auto_deselect(port_types)
     filtered_df = filter_database(filtered_df, port_types=port_types)
 
     voltage_types = st.sidebar.multiselect(
         "Select VOLTAGE_TYPE:",
-        ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist(),
-        default=["All"]
+        filtered_df['VOLTAGE_TYPE'].unique().tolist()
     )
-    voltage_types = auto_deselect(voltage_types)
     filtered_df = filter_database(filtered_df, voltage_types=voltage_types)
 
     voltages = st.sidebar.multiselect(
         "Select VOLTAGES:",
-        ["All"] + filtered_df['VOLTAGES'].unique().tolist(),
-        default=["All"]
+        filtered_df['VOLTAGES'].unique().tolist()
     )
-    voltages = auto_deselect(voltages)
     filtered_df = filter_database(filtered_df, voltages=voltages)
 
     # Remove empty columns
