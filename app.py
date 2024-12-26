@@ -4,14 +4,13 @@ import pandas as pd
 # Load the updated database
 @st.cache_data
 def load_data():
-    # Updated URL for the Google Sheet
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
     try:
         data = pd.read_csv(url)
         return data
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame()  # Return an empty DataFrame on failure
+        return pd.DataFrame()
 
 # Filter the database based on user selections
 def filter_database(df, product_features=None, entities=None, port_types=None, voltage_types=None, voltages=None):
@@ -35,31 +34,30 @@ def remove_empty_columns(df):
 def generate_summary(df):
     if df.empty:
         return "No data to summarize."
-    
-    summary_set = set()  # Use a set to ensure uniqueness
+
+    summary_set = set()
     for _, row in df.iterrows():
-        test_type = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
+        test_type = row.get('TEST_TYPE', "Not Available")
         if test_type == "DC Ripple":
-            frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
-            level = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
-            criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+            frequency = row.get('Frequency_[Hz]', "Not Available")
+            level = row.get('Level_[%]', "Not Available")
+            criteria = row.get('Criteria', "Not Available")
             line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
         elif test_type == "AC VDI":
-            applicability = row['Applicability'] if pd.notnull(row['Applicability']) else "Not Available"
-            frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
-            reduction = row['Reduction_[%]'] if pd.notnull(row['Reduction_[%]']) else "Not Available"
-            crossing = row['Crossing_[deg]'] if pd.notnull(row['Crossing_[deg]']) else "Not Available"
-            criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+            applicability = row.get('Applicability', "Not Available")
+            frequency = row.get('Frequency_[Hz]', "Not Available")
+            reduction = row.get('Reduction_[%]', "Not Available")
+            crossing = row.get('Crossing_[deg]', "Not Available")
+            criteria = row.get('Criteria', "Not Available")
 
-            # Handle Duration values
-            duration_cycles = row['Duration_[Cycles]'] if pd.notnull(row['Duration_[Cycles]']) else None
-            duration_ms = row['Duration_[ms]'] if pd.notnull(row['Duration_[ms]']) else None
+            duration_cycles = row.get('Duration_[Cycles]')
+            duration_ms = row.get('Duration_[ms]')
 
-            if duration_cycles and duration_ms:
+            if pd.notnull(duration_cycles) and pd.notnull(duration_ms):
                 duration = f"Duration {duration_cycles} cycles, {duration_ms} ms"
-            elif duration_ms:
+            elif pd.notnull(duration_ms):
                 duration = f"Duration {duration_ms} ms"
-            elif duration_cycles:
+            elif pd.notnull(duration_cycles):
                 duration = f"Duration {duration_cycles} cycles"
             else:
                 duration = "Duration Not Available"
@@ -70,10 +68,9 @@ def generate_summary(df):
             )
         else:
             line = f"{test_type}: Information unavailable for summary."
-        summary_set.add(line)  # Add each unique line to the set
+        summary_set.add(line)
 
-    # Combine all unique summary points
-    unique_summary = sorted(list(summary_set))  # Sort for consistent order
+    unique_summary = sorted(list(summary_set))
     return "\n".join(f"{i+1}) {item}" for i, item in enumerate(unique_summary))
 
 # Main application
