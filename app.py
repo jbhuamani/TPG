@@ -31,13 +31,13 @@ def generate_summary(filtered_df):
     if filtered_df.empty:
         return "No test plan available for the selected criteria."
     
-    summary_lines = []
+    summary_lines = set()  # Use a set to avoid redundant lines
     for _, row in filtered_df.iterrows():
         if row['TEST_TYPE'] == "DC Ripple":
             frequency = row['DCR_Freq_[Hz]']
             level = row['DCR_Level_[%]']
             criteria = row['DCR_Criteria']
-            summary_lines.append(f"DC Ripple: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}")
+            summary_lines.add(f"DC Ripple: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}")
         elif row['TEST_TYPE'] == "AC VDI":
             applicability = row['ACV_Apply']
             frequency = row['ACV_Freq_[Hz]']
@@ -48,10 +48,10 @@ def generate_summary(filtered_df):
             criteria = row['ACV_Criteria']
             duration_str = f"{duration_cycles} cycles" if pd.notnull(duration_cycles) else ""
             duration_str += f", {duration_ms} ms" if pd.notnull(duration_ms) else ""
-            summary_lines.append(
+            summary_lines.add(
                 f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}"
             )
-    return "\n".join(summary_lines)
+    return "\n".join(sorted(summary_lines))  # Sort for consistent output
 
 # Remove empty columns
 def remove_empty_columns(df):
