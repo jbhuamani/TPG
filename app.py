@@ -1,21 +1,20 @@
-@st.cache_resource
-def load_data():
-    # Data loading logic
-
 import streamlit as st
 import pandas as pd
 
 # Load the updated database
 @st.cache_data
 def load_data():
-    # Replace this URL with the Google Sheets CSV link
+    # Replace this URL with your Google Sheet CSV link
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=0&single=true&output=csv"
-    data = pd.read_csv(url)
-    return data
+    try:
+        data = pd.read_csv(url)
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame on failure
 
 # Filter the database based on user selections
 def filter_database(df, product_feature, entity, port_type, voltage_type, voltages):
-    # Dynamically filter the dataframe based on selected values
     if product_feature != "All":
         df = df[df['PRODUCT_FEATURE'] == product_feature]
     if entity != "All":
@@ -35,6 +34,9 @@ def main():
 
     # Load the data
     df = load_data()
+    if df.empty:
+        st.error("No data available. Please check your database connection.")
+        return
 
     # Sidebar dropdown menus
     st.sidebar.header("Filter Options")
