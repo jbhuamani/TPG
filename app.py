@@ -12,6 +12,13 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
+# Automatically deselect "All" when another option is selected
+def auto_deselect(selection):
+    """Ensure 'All' is deselected if any other item is selected."""
+    if "All" in selection and len(selection) > 1:
+        selection.remove("All")
+    return selection
+
 # Filter the database based on user selections
 def filter_database(df, product_features=None, entities=None, port_types=None, voltage_types=None, voltages=None):
     if product_features and "All" not in product_features:
@@ -30,50 +37,6 @@ def filter_database(df, product_features=None, entities=None, port_types=None, v
 def remove_empty_columns(df):
     return df.dropna(how="all", axis=1)
 
-# Generate a formatted summary of the test plan
-def generate_summary(df):
-    if df.empty:
-        return "No data to summarize."
-
-    summary_set = set()
-    for _, row in df.iterrows():
-        test_type = row.get('TEST_TYPE', "Not Available")
-        if test_type == "DC Ripple":
-            frequency = row.get('DCR_Freq_[Hz]', "Not Available")
-            level = row.get('DCR_Level_[%]', "Not Available")
-            criteria = row.get('DCR_Criteria', "Not Available")
-            line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
-        elif test_type == "AC VDI":
-            applicability = row.get('ACV_Apply', "Not Available")
-            frequency = row.get('ACV_Freq_[Hz]', "Not Available")
-            reduction = row.get('ACV_Red_[%]', "Not Available")
-            crossing = row.get('ACV_Cross_[deg]', "Not Available")
-            criteria = row.get('ACV_Criteria', "Not Available")
-
-            # Handle Duration values
-            duration_cycles = row.get('ACV_Dur_[Cycles]')
-            duration_ms = row.get('ACV_Dur_[ms]')
-
-            if pd.notnull(duration_cycles) and pd.notnull(duration_ms):
-                duration = f"Duration {duration_cycles} cycles, {duration_ms} ms"
-            elif pd.notnull(duration_ms):
-                duration = f"Duration {duration_ms} ms"
-            elif pd.notnull(duration_cycles):
-                duration = f"Duration {duration_cycles} cycles"
-            else:
-                duration = "Duration Not Available"
-
-            line = (
-                f"{test_type}: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
-                f"{duration}, Crossing {crossing} degrees, Criteria {criteria}"
-            )
-        else:
-            line = f"{test_type}: No data available for summary."
-        summary_set.add(line)
-
-    unique_summary = sorted(list(summary_set))
-    return "\n".join(f"{i+1}) {item}" for i, item in enumerate(unique_summary))
-
 # Main application
 def main():
     st.set_page_config(layout="wide")
@@ -87,12 +50,6 @@ def main():
         return
 
     # Sidebar multi-select menus with "All" auto-deselect logic
-    def auto_deselect_all(selection, options):
-        """Deselect 'All' if other items are selected."""
-        if "All" in selection and len(selection) > 1:
-            selection = [item for item in selection if item != "All"]
-        return selection
-
     st.sidebar.header("Filter Options")
 
     product_features = st.sidebar.multiselect(
@@ -100,7 +57,7 @@ def main():
         ["All"] + df['PRODUCT_FEATURE'].unique().tolist(),
         default=["All"]
     )
-    product_features = auto_deselect_all(product_features, ["All"] + df['PRODUCT_FEATURE'].unique().tolist())
+    product_features = auto_deselect(product_features)
     filtered_df = filter_database(df, product_features=product_features)
 
     entities = st.sidebar.multiselect(
@@ -108,7 +65,7 @@ def main():
         ["All"] + filtered_df['ENTITY'].unique().tolist(),
         default=["All"]
     )
-    entities = auto_deselect_all(entities, ["All"] + filtered_df['ENTITY'].unique().tolist())
+    entities = auto_deselect(entities)
     filtered_df = filter_database(filtered_df, entities=entities)
 
     port_types = st.sidebar.multiselect(
@@ -116,7 +73,7 @@ def main():
         ["All"] + filtered_df['PORT_TYPE'].unique().tolist(),
         default=["All"]
     )
-    port_types = auto_deselect_all(port_types, ["All"] + filtered_df['PORT_TYPE'].unique().tolist())
+    port_types = auto_deselect(port_types)
     filtered_df = filter_database(filtered_df, port_types=port_types)
 
     voltage_types = st.sidebar.multiselect(
@@ -124,7 +81,7 @@ def main():
         ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist(),
         default=["All"]
     )
-    voltage_types = auto_deselect_all(voltage_types, ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist())
+    voltage_types = auto_deselect(voltage_types)
     filtered_df = filter_database(filtered_df, voltage_types=voltage_types)
 
     voltages = st.sidebar.multiselect(
@@ -132,7 +89,7 @@ def main():
         ["All"] + filtered_df['VOLTAGES'].unique().tolist(),
         default=["All"]
     )
-    voltages = auto_deselect_all(voltages, ["All"] + filtered_df['VOLTAGES'].unique().tolist())
+    voltages = auto_deselect(voltages)
     filtered_df = filter_database(filtered_df, voltages=voltages)
 
     # Remove empty columns
@@ -143,11 +100,6 @@ def main():
     if not filtered_df.empty:
         st.write("The following test cases match your selection:")
         st.dataframe(filtered_df, use_container_width=True)
-
-        # Generate and display the summary
-        st.subheader("Test Plan Summary")
-        summary = generate_summary(filtered_df)
-        st.text(summary)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
 
