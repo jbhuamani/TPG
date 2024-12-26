@@ -39,10 +39,37 @@ def generate_summary(df):
     summary_set = set()  # Use a set to ensure uniqueness
     for _, row in df.iterrows():
         test_type = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
-        frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
-        level = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
-        criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
-        line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
+        if test_type == "DC Ripple":
+            frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
+            level = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
+            criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+            line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
+        elif test_type == "AC VDI":
+            applicability = row['Applicability'] if pd.notnull(row['Applicability']) else "Not Available"
+            frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
+            reduction = row['Reduction_[%]'] if pd.notnull(row['Reduction_[%]']) else "Not Available"
+            crossing = row['Crossing_[deg]'] if pd.notnull(row['Crossing_[deg]']) else "Not Available"
+            criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+
+            # Handle Duration values
+            duration_cycles = row['Duration_[Cycles]'] if pd.notnull(row['Duration_[Cycles]']) else None
+            duration_ms = row['Duration_[ms]'] if pd.notnull(row['Duration_[ms]']) else None
+
+            if duration_cycles and duration_ms:
+                duration = f"Duration {duration_cycles} cycles, {duration_ms} ms"
+            elif duration_ms:
+                duration = f"Duration {duration_ms} ms"
+            elif duration_cycles:
+                duration = f"Duration {duration_cycles} cycles"
+            else:
+                duration = "Duration Not Available"
+
+            line = (
+                f"{test_type}: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                f"{duration}, Crossing {crossing} degrees, Criteria {criteria}"
+            )
+        else:
+            line = f"{test_type}: Information unavailable for summary."
         summary_set.add(line)  # Add each unique line to the set
 
     # Combine all unique summary points
