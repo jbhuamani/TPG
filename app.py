@@ -27,6 +27,10 @@ def filter_database(df, product_feature=None, entity=None, port_type=None, volta
         df = df[df['VOLTAGES'] == voltages]
     return df
 
+# Hide empty columns
+def remove_empty_columns(df):
+    return df.dropna(how="all", axis=1)
+
 # Generate a summary of the test plan
 def generate_summary(df):
     if df.empty:
@@ -79,6 +83,9 @@ def main():
         st.sidebar.warning("Selected value is unavailable in the filtered table.")
     else:
         filtered_df = filter_database(filtered_df, voltages=voltages)
+
+    # Remove empty columns
+    filtered_df = remove_empty_columns(filtered_df)
 
     # Display the results
     st.header("Generated Test Plan")
