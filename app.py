@@ -29,7 +29,7 @@ def filter_database(df, product_feature, entity, port_type, voltage_type, voltag
 
 # Main application
 def main():
-    st.title("Enhanced EMC Test Plan Generator")
+    st.title("Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
 
     # Load the data
