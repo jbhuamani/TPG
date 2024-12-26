@@ -4,6 +4,7 @@ import pandas as pd
 # Load the updated database
 @st.cache_data
 def load_data():
+    # Link to your Google Sheets or local file path
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=0&single=true&output=csv"
     data = pd.read_csv(url)
     return data
@@ -19,11 +20,12 @@ def filter_database(df, product_feature, entity, port_type, voltage_type, voltag
     ]
     return filtered_df
 
-# Main app
+# Main application
 def main():
     st.title("Enhanced EMC Test Plan Generator")
+    st.write("Select options below to generate a test plan based on your requirements.")
 
-    # Load the database
+    # Load the data
     df = load_data()
 
     # Sidebar dropdown menus
@@ -34,14 +36,16 @@ def main():
     voltage_type = st.sidebar.selectbox("Select VOLTAGE_TYPE:", df['VOLTAGE_TYPE'].unique())
     voltages = st.sidebar.selectbox("Select VOLTAGES:", df['VOLTAGES'].unique())
 
-    # Filter the database
-    st.header("Filtered Test Plan Data")
+    # Filter data based on selections
     filtered_df = filter_database(df, product_feature, entity, port_type, voltage_type, voltages)
 
+    # Display the results
+    st.header("Generated Test Plan")
     if not filtered_df.empty:
+        st.write("The following test cases match your selection:")
         st.dataframe(filtered_df)
     else:
-        st.warning("No matching data found for the selected criteria.")
+        st.warning("No matching test cases found. Please modify your selections.")
 
 if __name__ == "__main__":
     main()
