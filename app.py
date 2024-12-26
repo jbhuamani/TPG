@@ -27,22 +27,22 @@ def filter_database(df, product_feature=None, entity=None, port_type=None, volta
         df = df[df['VOLTAGES'] == voltages]
     return df
 
-# Hide empty columns
+# Remove empty columns
 def remove_empty_columns(df):
     return df.dropna(how="all", axis=1)
 
-# Generate a summary of the test plan
+# Generate a formatted summary of the test plan
 def generate_summary(df):
     if df.empty:
         return "No data to summarize."
     
     summary_set = set()  # Use a set to ensure uniqueness
     for _, row in df.iterrows():
-        criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+        test_type = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
         frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
-        reduction = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
-        test_class = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
-        line = f"{frequency}Hz, {reduction}%, Criteria {criteria} ({test_class})"
+        level = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
+        criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+        line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
         summary_set.add(line)  # Add each unique line to the set
 
     # Combine all unique summary points
