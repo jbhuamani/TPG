@@ -76,28 +76,9 @@ def generate_summary(df):
 
 # Main application
 def main():
-    st.set_page_config(layout="wide")  # Utilize the full screen width
+    st.set_page_config(layout="wide")
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
-
-    # Add custom CSS for styling
-    st.markdown(
-        """
-        <style>
-        .css-18e3th9 {
-            padding: 1rem 1rem 1rem 1rem;  /* Reduce padding for the sidebar */
-        }
-        .css-1d391kg {
-            padding: 1rem 1rem 1rem 1rem;  /* Reduce padding for the main content */
-        }
-        .block-container {
-            padding: 1rem 3rem;  /* Adjust overall padding */
-            max-width: 95%;  /* Increase the content width */
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
     # Load the data
     df = load_data()
@@ -105,21 +86,53 @@ def main():
         st.error("No data available. Please check your database connection.")
         return
 
-    # Sidebar multi-select menus
+    # Sidebar multi-select menus with "All" auto-deselect logic
+    def auto_deselect_all(selection, options):
+        """Deselect 'All' if other items are selected."""
+        if "All" in selection and len(selection) > 1:
+            selection = [item for item in selection if item != "All"]
+        return selection
+
     st.sidebar.header("Filter Options")
-    product_features = st.sidebar.multiselect("Select PRODUCT_FEATURE:", ["All"] + df['PRODUCT_FEATURE'].unique().tolist(), default="All")
+
+    product_features = st.sidebar.multiselect(
+        "Select PRODUCT_FEATURE:",
+        ["All"] + df['PRODUCT_FEATURE'].unique().tolist(),
+        default=["All"]
+    )
+    product_features = auto_deselect_all(product_features, ["All"] + df['PRODUCT_FEATURE'].unique().tolist())
     filtered_df = filter_database(df, product_features=product_features)
 
-    entities = st.sidebar.multiselect("Select ENTITY:", ["All"] + filtered_df['ENTITY'].unique().tolist(), default="All")
+    entities = st.sidebar.multiselect(
+        "Select ENTITY:",
+        ["All"] + filtered_df['ENTITY'].unique().tolist(),
+        default=["All"]
+    )
+    entities = auto_deselect_all(entities, ["All"] + filtered_df['ENTITY'].unique().tolist())
     filtered_df = filter_database(filtered_df, entities=entities)
 
-    port_types = st.sidebar.multiselect("Select PORT_TYPE:", ["All"] + filtered_df['PORT_TYPE'].unique().tolist(), default="All")
+    port_types = st.sidebar.multiselect(
+        "Select PORT_TYPE:",
+        ["All"] + filtered_df['PORT_TYPE'].unique().tolist(),
+        default=["All"]
+    )
+    port_types = auto_deselect_all(port_types, ["All"] + filtered_df['PORT_TYPE'].unique().tolist())
     filtered_df = filter_database(filtered_df, port_types=port_types)
 
-    voltage_types = st.sidebar.multiselect("Select VOLTAGE_TYPE:", ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist(), default="All")
+    voltage_types = st.sidebar.multiselect(
+        "Select VOLTAGE_TYPE:",
+        ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist(),
+        default=["All"]
+    )
+    voltage_types = auto_deselect_all(voltage_types, ["All"] + filtered_df['VOLTAGE_TYPE'].unique().tolist())
     filtered_df = filter_database(filtered_df, voltage_types=voltage_types)
 
-    voltages = st.sidebar.multiselect("Select VOLTAGES:", ["All"] + filtered_df['VOLTAGES'].unique().tolist(), default="All")
+    voltages = st.sidebar.multiselect(
+        "Select VOLTAGES:",
+        ["All"] + filtered_df['VOLTAGES'].unique().tolist(),
+        default=["All"]
+    )
+    voltages = auto_deselect_all(voltages, ["All"] + filtered_df['VOLTAGES'].unique().tolist())
     filtered_df = filter_database(filtered_df, voltages=voltages)
 
     # Remove empty columns
@@ -129,7 +142,7 @@ def main():
     st.header("Generated Test Plan")
     if not filtered_df.empty:
         st.write("The following test cases match your selection:")
-        st.dataframe(filtered_df, use_container_width=True)  # Table utilizes full width
+        st.dataframe(filtered_df, use_container_width=True)
 
         # Generate and display the summary
         st.subheader("Test Plan Summary")
