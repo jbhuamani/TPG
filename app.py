@@ -76,8 +76,28 @@ def generate_summary(df):
 
 # Main application
 def main():
+    st.set_page_config(layout="wide")  # Utilize the full screen width
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
+
+    # Add custom CSS for styling
+    st.markdown(
+        """
+        <style>
+        .css-18e3th9 {
+            padding: 1rem 1rem 1rem 1rem;  /* Reduce padding for the sidebar */
+        }
+        .css-1d391kg {
+            padding: 1rem 1rem 1rem 1rem;  /* Reduce padding for the main content */
+        }
+        .block-container {
+            padding: 1rem 3rem;  /* Adjust overall padding */
+            max-width: 95%;  /* Increase the content width */
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Load the data
     df = load_data()
@@ -109,7 +129,7 @@ def main():
     st.header("Generated Test Plan")
     if not filtered_df.empty:
         st.write("The following test cases match your selection:")
-        st.dataframe(filtered_df)
+        st.dataframe(filtered_df, use_container_width=True)  # Table utilizes full width
 
         # Generate and display the summary
         st.subheader("Test Plan Summary")
