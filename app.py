@@ -1,9 +1,9 @@
-import streamlit as st
-import pandas as pd
-
 @st.cache_resource
 def load_data():
     # Data loading logic
+
+import streamlit as st
+import pandas as pd
 
 # Load the updated database
 @st.cache_data
