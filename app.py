@@ -38,16 +38,21 @@ def generate_summary(df):
     summary_set = set()
     for _, row in df.iterrows():
         test_type = row.get('TEST_TYPE', "Not Available")
-        if test_type == "AC VDI":
-            applicability = row.get('Applicability', "Not Available")
-            frequency = row.get('Frequency_[Hz]', "Not Available")
-            reduction = row.get('Reduction_[%]', "Not Available")
-            crossing = row.get('Crossing_[deg]', "Not Available")
-            criteria = row.get('Criteria', "Not Available")
+        if test_type == "DC Ripple":
+            frequency = row.get('DCR_Freq_[Hz]', "Not Available")
+            level = row.get('DCR_Level_[%]', "Not Available")
+            criteria = row.get('DCR_Criteria', "Not Available")
+            line = f"{test_type}: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
+        elif test_type == "AC VDI":
+            applicability = row.get('ACV_Apply', "Not Available")
+            frequency = row.get('ACV_Freq_[Hz]', "Not Available")
+            reduction = row.get('ACV_Red_[%]', "Not Available")
+            crossing = row.get('ACV_Cross_[deg]', "Not Available")
+            criteria = row.get('ACV_Criteria', "Not Available")
 
             # Handle Duration values
-            duration_cycles = row.get('Duration_[Cycles]')
-            duration_ms = row.get('Duration_[ms]')
+            duration_cycles = row.get('ACV_Dur_[Cycles]')
+            duration_ms = row.get('ACV_Dur_[ms]')
 
             if pd.notnull(duration_cycles) and pd.notnull(duration_ms):
                 duration = f"Duration {duration_cycles} cycles, {duration_ms} ms"
@@ -63,7 +68,7 @@ def generate_summary(df):
                 f"{duration}, Crossing {crossing} degrees, Criteria {criteria}"
             )
         else:
-            line = f"{test_type}: Information unavailable for summary."
+            line = f"{test_type}: No data available for summary."
         summary_set.add(line)
 
     unique_summary = sorted(list(summary_set))
