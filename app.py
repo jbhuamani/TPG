@@ -27,11 +27,14 @@ def filter_database(df, product_features=None, entities=None, port_types=None, v
     return df
 
 # Generate a summary of the test plan
-def generate_summary(filtered_df):
+def generate_summary_and_justifiable(filtered_df):
     if filtered_df.empty:
-        return "No test plan available for the selected criteria."
-    
+        return "No test plan available for the selected criteria.", ""
+
     summary_lines = set()  # Use a set to avoid redundant lines
+    justifiable_lines = set()  # Separate section for justifiable lines
+    criteria_hierarchy = {"A": 1, "B": 2, "C": 3}  # Define criteria hierarchy
+
     for _, row in filtered_df.iterrows():
         if row['TEST_TYPE'] == "DC Ripple":
             frequency = row['DCR_Freq_[Hz]']
@@ -48,10 +51,27 @@ def generate_summary(filtered_df):
             criteria = row['ACV_Criteria']
             duration_str = f"{duration_cycles} cycles" if pd.notnull(duration_cycles) else ""
             duration_str += f", {duration_ms} ms" if pd.notnull(duration_ms) else ""
-            summary_lines.add(
-                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}"
+            line = (
+                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                f"Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}"
             )
-    return "\n".join(sorted(summary_lines))  # Sort for consistent output
+
+            # Check if this line can be justified by a stricter one
+            stricter_line = (
+                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                f"Duration {duration_str}, Crossing {crossing} degrees, Criteria "
+                f"{list(criteria_hierarchy.keys())[list(criteria_hierarchy.values()).index(criteria_hierarchy[criteria] - 1)]}"
+            )
+            if stricter_line in summary_lines:
+                justifiable_lines.add(line)
+            else:
+                summary_lines.add(line)
+
+    # Format summaries with enumeration
+    summary = "\n".join([f"{i + 1}) {line}" for i, line in enumerate(sorted(summary_lines))])
+    justifiable = "\n".join([f"{i + 1}) {line}" for i, line in enumerate(sorted(justifiable_lines))])
+
+    return summary, justifiable
 
 # Remove empty columns
 def remove_empty_columns(df):
@@ -112,8 +132,12 @@ def main():
 
         # Generate and display the test plan summary
         st.subheader("Test Plan Summary")
-        summary = generate_summary(filtered_df)
+        summary, justifiable = generate_summary_and_justifiable(filtered_df)
         st.text(summary)
+
+        if justifiable:
+            st.subheader("Justifiable Test Cases")
+            st.text(justifiable)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
 
