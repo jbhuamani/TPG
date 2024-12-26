@@ -73,7 +73,7 @@ def main():
     voltages = st.sidebar.selectbox(
         "Select VOLTAGES:", 
         ["All"] + filtered_df['VOLTAGES'].unique().tolist(), 
-        format_func=lambda x: x if x in filtered_df['VOLTAGES'].unique() else f"{x} (Unavailable)"
+        format_func=lambda x: x if x == "All" or x in filtered_df['VOLTAGES'].unique() else f"{x} (Unavailable)"
     )
     if voltages.endswith("(Unavailable)"):
         st.sidebar.warning("Selected value is unavailable in the filtered table.")
