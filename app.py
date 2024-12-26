@@ -35,17 +35,17 @@ def generate_summary(filtered_df):
     justifiable_lines = set()
 
     criteria_hierarchy = {'A': 1, 'B': 2, 'C': 3}  # Lower value = stricter
-    test_cases = []
+    unique_cases = {}
 
     # Collect all rows for processing
     for _, row in filtered_df.iterrows():
-        test_case = {
-            'summary': "",
-            'criteria': row['ACV_Criteria'] if row['TEST_TYPE'] == "AC VDI" else row['DCR_Criteria']
-        }
+        criteria = row.get('ACV_Criteria') or row.get('DCR_Criteria')
+        if criteria not in criteria_hierarchy:
+            continue  # Skip invalid or missing criteria
+
         if row['TEST_TYPE'] == "DC Ripple":
-            test_case['summary'] = (f"DC Ripple: Frequency {row['DCR_Freq_[Hz]']} Hz, Level {row['DCR_Level_[%]']}%, "
-                                    f"Criteria {row['DCR_Criteria']}")
+            summary = (f"DC Ripple: Frequency {row['DCR_Freq_[Hz]']} Hz, Level {row['DCR_Level_[%]']}%, "
+                       f"Criteria {row['DCR_Criteria']}")
         elif row['TEST_TYPE'] == "AC VDI":
             applicability = row['ACV_Apply']
             frequency = row['ACV_Freq_[Hz]']
@@ -53,18 +53,11 @@ def generate_summary(filtered_df):
             duration_cycles = row['ACV_Dur_[Cycles]']
             duration_ms = row['ACV_Dur_[ms]']
             crossing = row['ACV_Cross_[deg]']
-            criteria = row['ACV_Criteria']
             duration_str = f"{duration_cycles} cycles" if pd.notnull(duration_cycles) else ""
             duration_str += f", {duration_ms} ms" if pd.notnull(duration_ms) else ""
-            test_case['summary'] = (f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
-                                    f"Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}")
-        test_cases.append(test_case)
+            summary = (f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
+                       f"Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}")
 
-    # Process and identify justifiable test cases
-    unique_cases = {}
-    for case in test_cases:
-        summary = case['summary']
-        criteria = case['criteria']
         if summary not in unique_cases:
             unique_cases[summary] = criteria
         else:
