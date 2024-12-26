@@ -4,6 +4,7 @@ import pandas as pd
 # Load the updated database
 @st.cache_data
 def load_data():
+    # Updated URL for the Google Sheet
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
     try:
         data = pd.read_csv(url)
@@ -31,16 +32,18 @@ def generate_summary(df):
     if df.empty:
         return "No data to summarize."
     
-    summary = []
+    summary_set = set()  # Use a set to ensure uniqueness
     for _, row in df.iterrows():
         criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
         frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
         reduction = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
         test_class = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
-        summary.append(f"{frequency}Hz, {reduction}%, Criteria {criteria} ({test_class})")
+        line = f"{frequency}Hz, {reduction}%, Criteria {criteria} ({test_class})"
+        summary_set.add(line)  # Add each unique line to the set
 
-    # Combine all summary points
-    return "\n".join(f"{i+1}) {item}" for i, item in enumerate(summary))
+    # Combine all unique summary points
+    unique_summary = sorted(list(summary_set))  # Sort for consistent order
+    return "\n".join(f"{i+1}) {item}" for i, item in enumerate(unique_summary))
 
 # Main application
 def main():
