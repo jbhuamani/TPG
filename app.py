@@ -33,10 +33,10 @@ def generate_summary(df):
     
     summary = []
     for _, row in df.iterrows():
-        criteria = row['Criteria'] if 'Criteria' in row else "N/A"
-        frequency = row['Frequency_[Hz]'] if 'Frequency_[Hz]' in row else "N/A"
-        reduction = row['Reduction_[%]'] if 'Reduction_[%]' in row else "N/A"
-        test_class = row['TEST_TYPE'] if 'TEST_TYPE' in row else "N/A"
+        criteria = row['Criteria'] if pd.notnull(row['Criteria']) else "Not Available"
+        frequency = row['Frequency_[Hz]'] if pd.notnull(row['Frequency_[Hz]']) else "Not Available"
+        reduction = row['Level_[%]'] if pd.notnull(row['Level_[%]']) else "Not Available"
+        test_class = row['TEST_TYPE'] if pd.notnull(row['TEST_TYPE']) else "Not Available"
         summary.append(f"{frequency}Hz, {reduction}%, Criteria {criteria} ({test_class})")
 
     # Combine all summary points
@@ -44,7 +44,7 @@ def generate_summary(df):
 
 # Main application
 def main():
-    st.title("Test Plan Generator")
+    st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
 
     # Load the data
