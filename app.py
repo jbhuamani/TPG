@@ -4,7 +4,6 @@ import pandas as pd
 # Load the updated database
 @st.cache_data
 def load_data():
-    # Replace this URL with your Google Sheet CSV link
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
     try:
         data = pd.read_csv(url)
@@ -26,6 +25,22 @@ def filter_database(df, product_feature, entity, port_type, voltage_type, voltag
     if voltages != "All":
         df = df[df['VOLTAGES'] == voltages]
     return df
+
+# Generate a summary of the test plan
+def generate_summary(df):
+    if df.empty:
+        return "No data to summarize."
+    
+    summary = []
+    for _, row in df.iterrows():
+        criteria = row['Criteria'] if 'Criteria' in row else "N/A"
+        frequency = row['Frequency_[Hz]'] if 'Frequency_[Hz]' in row else "N/A"
+        reduction = row['Reduction_[%]'] if 'Reduction_[%]' in row else "N/A"
+        test_class = row['TEST_TYPE'] if 'TEST_TYPE' in row else "N/A"
+        summary.append(f"{frequency}Hz, {reduction}%, Criteria {criteria} ({test_class})")
+
+    # Combine all summary points
+    return "\n".join(f"{i+1}) {item}" for i, item in enumerate(summary))
 
 # Main application
 def main():
@@ -54,6 +69,11 @@ def main():
     if not filtered_df.empty:
         st.write("The following test cases match your selection:")
         st.dataframe(filtered_df)
+
+        # Generate and display the summary
+        st.subheader("Test Plan Summary")
+        summary = generate_summary(filtered_df)
+        st.text(summary)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
 
