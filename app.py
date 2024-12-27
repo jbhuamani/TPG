@@ -1,3 +1,34 @@
+import streamlit as st
+import pandas as pd
+
+# Set page configuration
+st.set_page_config(layout="wide", page_title="Enhanced EMC Test Plan Generator")
+
+# Load the updated database
+@st.cache_data
+def load_data():
+    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
+    try:
+        data = pd.read_csv(url)
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()
+
+# Filter the database based on user selections
+def filter_database(df, product_features=None, entities=None, port_types=None, voltage_types=None, voltages=None):
+    if product_features:
+        df = df[df['PRODUCT_FEATURE'].isin(product_features)]
+    if entities:
+        df = df[df['ENTITY'].isin(entities)]
+    if port_types:
+        df = df[df['PORT_TYPE'].isin(port_types)]
+    if voltage_types:
+        df = df[df['VOLTAGE_TYPE'].isin(voltage_types)]
+    if voltages:
+        df = df[df['VOLTAGES'].isin(voltages)]
+    return df
+
 # Generate a summary of the test plan with a "Justifiable" section
 def generate_summary(filtered_df):
     if filtered_df.empty:
@@ -47,9 +78,12 @@ def generate_summary(filtered_df):
     justifiable_summaries = sorted([f"{i+1}) {summary}" for i, summary in enumerate(justifiable_lines)])
     return "\n".join(unique_summaries), "\n".join(justifiable_summaries)
 
+# Remove empty columns
+def remove_empty_columns(df):
+    return df.dropna(how="all", axis=1)
+
 # Main application
 def main():
-    st.set_page_config(layout="wide")
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
 
