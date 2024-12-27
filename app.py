@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-# Set page configuration
-st.set_page_config(layout="wide", page_title="Enhanced EMC Test Plan Generator")
-
 # Load the updated database
 @st.cache_data
 def load_data():
@@ -29,54 +26,32 @@ def filter_database(df, product_features=None, entities=None, port_types=None, v
         df = df[df['VOLTAGES'].isin(voltages)]
     return df
 
-# Generate a summary of the test plan with a "Justifiable" section
+# Generate a summary of the test plan
 def generate_summary(filtered_df):
     if filtered_df.empty:
-        return "No test plan available for the selected criteria.", ""
-
+        return "No test plan available for the selected criteria."
+    
     summary_lines = set()  # Use a set to avoid redundant lines
-    justifiable_lines = set()
-
-    criteria_hierarchy = {'A': 1, 'B': 2, 'C': 3}  # Lower value = stricter
-    unique_cases = {}
-
     for _, row in filtered_df.iterrows():
-        test_type = row['TEST_TYPE']
-        criteria = row.get('DCR_Criteria') or row.get('ACV_Criteria')
-        if criteria not in criteria_hierarchy:
-            continue  # Skip invalid or missing criteria
-
-        if test_type == "DC Ripple":
+        if row['TEST_TYPE'] == "DC Ripple":
             frequency = row['DCR_Freq_[Hz]']
             level = row['DCR_Level_[%]']
-            summary = f"DC Ripple: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}"
-        elif test_type == "AC VDI":
+            criteria = row['DCR_Criteria']
+            summary_lines.add(f"DC Ripple: Frequency {frequency} Hz, Level {level}%, Criteria {criteria}")
+        elif row['TEST_TYPE'] == "AC VDI":
             applicability = row['ACV_Apply']
             frequency = row['ACV_Freq_[Hz]']
             reduction = row['ACV_Red_[%]']
             duration_cycles = row['ACV_Dur_[Cycles]']
             duration_ms = row['ACV_Dur_[ms]']
             crossing = row['ACV_Cross_[deg]']
+            criteria = row['ACV_Criteria']
             duration_str = f"{duration_cycles} cycles" if pd.notnull(duration_cycles) else ""
             duration_str += f", {duration_ms} ms" if pd.notnull(duration_ms) else ""
-            summary = (f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, "
-                       f"Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}")
-
-        # Handle redundancy and justification
-        if summary not in unique_cases:
-            unique_cases[summary] = criteria
-        else:
-            existing_criteria = unique_cases[summary]
-            if criteria_hierarchy[criteria] > criteria_hierarchy[existing_criteria]:
-                justifiable_lines.add(summary)
-            else:
-                justifiable_lines.add(summary)
-                unique_cases[summary] = criteria
-
-    # Finalize unique and justifiable test cases
-    unique_summaries = sorted([f"{i+1}) {summary}" for i, summary in enumerate(unique_cases.keys())])
-    justifiable_summaries = sorted([f"{i+1}) {summary}" for i, summary in enumerate(justifiable_lines)])
-    return "\n".join(unique_summaries), "\n".join(justifiable_summaries)
+            summary_lines.add(
+                f"AC VDI: Applicability {applicability}, Frequency {frequency} Hz, Reduction {reduction}%, Duration {duration_str}, Crossing {crossing} degrees, Criteria {criteria}"
+            )
+    return "\n".join(sorted(summary_lines))  # Sort for consistent output
 
 # Remove empty columns
 def remove_empty_columns(df):
@@ -84,6 +59,7 @@ def remove_empty_columns(df):
 
 # Main application
 def main():
+    st.set_page_config(layout="wide")
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options below to generate a test plan based on your requirements.")
 
@@ -136,12 +112,8 @@ def main():
 
         # Generate and display the test plan summary
         st.subheader("Test Plan Summary")
-        summary, justifiable_summary = generate_summary(filtered_df)
-        st.text("### Unique Test Cases")
+        summary = generate_summary(filtered_df)
         st.text(summary)
-        if justifiable_summary:
-            st.text("### Justifiable Test Cases")
-            st.text(justifiable_summary)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
 
