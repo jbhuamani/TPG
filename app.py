@@ -55,7 +55,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
         grouped_dc = dc_ripple_df.groupby(["DCR_Freq_[Hz]", "DCR_Level_[%]"], dropna=False)
         for (freq, level), group_df in grouped_dc:
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
-            criteria_str = ", ".join(all_criteria)
+            criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
             output_lines.append(f"- Frequency: {freq} Hz, Level: {level}%, Criteria: {criteria_str}")
         output_lines.append("")  # Blank line separator
 
@@ -69,7 +69,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
         for (applicability, freq, crossing), group_df in grouped_ac_vdi:
             # Header line for this combination
             output_lines.append(
-                f"- Applicability: {applicability}, Frequency: {freq} Hz, Crossing: {crossing}°"
+                f"- **Applicability**: {applicability}, **Frequency**: {freq} Hz, **Crossing**: {crossing}°"
             )
 
             # Within each group, further group by (Reduction, Duration cycles, Duration ms)
@@ -77,7 +77,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
             for (reduction, dur_cycles, dur_ms), row_df in sub_group:
                 # Collect unique criteria in this sub-group
                 all_criteria = sorted(row_df["ACV_Criteria"].dropna().unique())
-                criteria_str = ", ".join(all_criteria)
+                criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
 
                 # Safely build a duration string (avoid ValueError for non-integer)
                 duration_parts = []
@@ -112,12 +112,12 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
 
                 duration_str = ", ".join(duration_parts)
 
-                # Add bullet for the sub-group
+                # Sub-bullet for each reduction entry
                 output_lines.append(
-                    f"   • Reduction: {reduction}%, Duration: {duration_str}, Criteria: {criteria_str}"
+                    f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
 
-        output_lines.append("")  # Blank line separator
+            output_lines.append("")  # Extra blank line after each group
 
     # Combine everything into a single string
     final_summary = "\n".join(output_lines).strip()
