@@ -12,7 +12,6 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
-
 # Filter the database based on user selections
 def filter_database(
     df: pd.DataFrame,
@@ -37,12 +36,11 @@ def filter_database(
         df = df[df['VOLTAGES'].isin(voltages)]
     return df
 
-
 # Generate a more organized summary of the test plan
 def generate_summary(filtered_df: pd.DataFrame) -> str:
     """
     Creates a structured, more readable summary of the test plan
-    by grouping rows with similar parameters.
+    by grouping rows with similar parameters and avoiding redundant lines.
     """
     if filtered_df.empty:
         return "No test plan available for the selected criteria."
@@ -53,10 +51,9 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     dc_ripple_df = filtered_df[filtered_df['TEST_TYPE'] == "DC Ripple"]
     if not dc_ripple_df.empty:
         output_lines.append("### DC Ripple Tests")
-        # Group DC Ripple by (Frequency, Level) so that repeated criteria lines get condensed
+        # Group DC Ripple by (Frequency, Level) so repeated lines get condensed
         grouped_dc = dc_ripple_df.groupby(["DCR_Freq_[Hz]", "DCR_Level_[%]"], dropna=False)
         for (freq, level), group_df in grouped_dc:
-            # Collect unique criteria
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
             criteria_str = ", ".join(all_criteria)
             output_lines.append(f"- Frequency: {freq} Hz, Level: {level}%, Criteria: {criteria_str}")
@@ -77,19 +74,39 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
 
             # Within each group, further group by (Reduction, Duration cycles, Duration ms)
             sub_group = group_df.groupby(["ACV_Red_[%]", "ACV_Dur_[Cycles]", "ACV_Dur_[ms]"], dropna=False)
-
             for (reduction, dur_cycles, dur_ms), row_df in sub_group:
                 # Collect unique criteria in this sub-group
                 all_criteria = sorted(row_df["ACV_Criteria"].dropna().unique())
                 criteria_str = ", ".join(all_criteria)
 
-                # Build a duration string (e.g. "5 cycles, 200 ms")
+                # Safely build a duration string (avoid ValueError for non-integer)
                 duration_parts = []
+
+                # Handle cycles
                 if pd.notnull(dur_cycles):
-                    duration_parts.append(f"{int(dur_cycles)} cycles")
+                    try:
+                        val_float = float(dur_cycles)
+                        # If it's effectively an integer (e.g., 5.0), display as integer
+                        if val_float.is_integer():
+                            duration_parts.append(f"{int(val_float)} cycles")
+                        else:
+                            duration_parts.append(f"{val_float} cycles")
+                    except ValueError:
+                        # If it's not numeric
+                        duration_parts.append(f"{dur_cycles} cycles")
+
+                # Handle milliseconds
                 if pd.notnull(dur_ms):
-                    duration_parts.append(f"{int(dur_ms)} ms")
-                # Fallback if no durations
+                    try:
+                        val_float = float(dur_ms)
+                        if val_float.is_integer():
+                            duration_parts.append(f"{int(val_float)} ms")
+                        else:
+                            duration_parts.append(f"{val_float} ms")
+                    except ValueError:
+                        duration_parts.append(f"{dur_ms} ms")
+
+                # If no valid duration was found
                 if not duration_parts:
                     duration_parts = ["-"]
 
@@ -106,14 +123,12 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
 
-
 # Remove empty columns
 def remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Removes columns that are entirely empty (NaN).
     """
     return df.dropna(how="all", axis=1)
-
 
 # Main application
 def main():
@@ -175,7 +190,6 @@ def main():
         st.markdown(summary)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
-
 
 if __name__ == "__main__":
     main()
