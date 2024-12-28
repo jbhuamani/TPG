@@ -7,14 +7,12 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 @st.cache_data
 def load_data():
     """
-    Loads the updated database from a public Google Sheets link.
+    Loads the updated database from a secret link (excel_db_link).
+    Make sure you set excel_db_link in your Streamlit Secrets.
     """
-    url = (
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrl"
-        "NeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631"
-        "&single=true&output=csv"
-    )
     try:
+        # Retrieve the link from Streamlit secrets
+        url = st.secrets["excel_db_link"]
         data = pd.read_csv(url)
         return data
     except Exception as e:
@@ -127,7 +125,7 @@ def main():
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options in the sidebar to generate a test plan based on your requirements.")
 
-    # 1) Load the data
+    # 1) Load the data using secrets
     df = load_data()
     if df.empty:
         st.error("No data available. Please check your database connection.")
@@ -170,18 +168,9 @@ def main():
     filtered_df = remove_empty_columns(filtered_df)
 
     # --------------------------------------------------------------
-    #  COMMENTED-OUT (OLD) CODE: Inserting "No." in the DataFrame
-    #  This caused the numbering to be "stuck" when sorting other cols.
+    #  Let AG Grid do dynamic numbering
     # --------------------------------------------------------------
-    # df_display = filtered_df.copy()
-    # df_display.reset_index(drop=True, inplace=True)
-    # df_display.insert(0, "No.", range(1, len(df_display) + 1))
-
-    # --------------------------------------------------------------
-    #  NEW APPROACH: Just use the data as-is; let AG Grid do dynamic
-    #  numbering on the front end via "valueGetter: node.rowIndex + 1"
-    # --------------------------------------------------------------
-    df_display = filtered_df.copy()  # no "No." column in the actual data
+    df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
 
     # Display the table + summary
@@ -192,7 +181,7 @@ def main():
         # Build the grid from your data
         gb = GridOptionsBuilder.from_dataframe(df_display)
 
-        # We enable the checkbox-based Set Filter
+        # Enable the checkbox-based Set Filter
         gb.configure_default_column(
             filter="agSetColumnFilter",
             sortable=True,
@@ -202,21 +191,15 @@ def main():
         # Build final grid options
         grid_options = gb.build()
 
-        # -------------------------------------------
-        #   Insert a "No." column at the left,
-        #   using AG Grid's row index
-        # -------------------------------------------
-        # We do this *after* building from the DataFrame
-        # because "No." is not a real DataFrame column.
+        # Insert a "No." column dynamically
         new_col_def = {
             "headerName": "No.",
             "field": "No.",
-            "valueGetter": "node.rowIndex + 1",  # 1-based dynamic numbering
+            "valueGetter": "node.rowIndex + 1",
             "filter": False,
             "sortable": False,
             "pinned": "left"
         }
-        # Insert at the front of the column definitions
         if "columnDefs" in grid_options:
             grid_options["columnDefs"].insert(0, new_col_def)
 
