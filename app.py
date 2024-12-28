@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# 1) Import st-aggrid libraries
+# IMPORTANT: This import requires "pip install streamlit-aggrid"
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 @st.cache_data
@@ -133,7 +133,7 @@ def main():
         st.error("No data available. Please check your database connection.")
         return
 
-    # 2) Sidebar multi-select menus (existing approach)
+    # 2) Sidebar multi-select menus
     st.sidebar.header("Filter Options")
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
@@ -175,37 +175,37 @@ def main():
     df_display.index = df_display.index + 1
     df_display.index.name = "No."
 
-    # ---------------------------------------------------------------------
-    #    DISPLAY TABLE WITH AG-GRID "SET FILTER" PER COLUMN
-    # ---------------------------------------------------------------------
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
+        # ------------------------------------------
+        #   AG-GRID: PER-COLUMN CHECKBOX FILTER
+        # ------------------------------------------
         # Build the grid options so each column has a checkbox-based "Set Filter."
         gb = GridOptionsBuilder.from_dataframe(df_display)
 
-        # This line ensures every column uses AG Grid’s built-in “Set Filter.”
-        # The user gets a small filter icon in each column header that, when clicked,
-        # shows checkboxes for each distinct value in that column.
+        # "agSetColumnFilter" displays a filter icon in each column header,
+        # which shows checkboxes for each distinct value.
         gb.configure_default_column(
-            filter="agSetColumnFilter",  # <--- the key config for checkbox filters
+            filter="agSetColumnFilter",  # <--- This is key for the checkbox filters
             sortable=True,
             resizable=True
         )
+
         grid_options = gb.build()
 
-        # Render the AG Grid table
+        # Display the data with AG Grid
         AgGrid(
             df_display,
             gridOptions=grid_options,
-            theme="streamlit",          # or "light", "dark", "blue", "material"
+            theme="streamlit",  # "light", "dark", "blue", "material" also possible
             enable_enterprise_modules=False,
             allow_unsafe_jscode=True,
             reload_data=True
         )
 
-        # 6) Generate and display the test plan summary
+        # Generate and display the test plan summary
         st.subheader("Organized Test Plan Summary")
         summary = generate_summary(df_display)
         st.markdown(summary)
