@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 
+# 1) Import st-aggrid libraries
+from st_aggrid import AgGrid, GridOptionsBuilder
+
 @st.cache_data
 def load_data():
     """
@@ -61,7 +64,6 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     dc_ripple_df = filtered_df[filtered_df['TEST_TYPE'] == "DC Ripple"]
     if not dc_ripple_df.empty:
         output_lines.append("### DC Ripple Tests")
-        # Group DC Ripple by (Frequency, Level) so repeated lines get condensed
         grouped_dc = dc_ripple_df.groupby(["DCR_Freq_[Hz]", "DCR_Level_[%]"], dropna=False)
         for (freq, level), group_df in grouped_dc:
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
@@ -87,7 +89,6 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
 
                 # Safely build a duration string
                 duration_parts = []
-                # Handle cycles
                 if pd.notnull(dur_cycles):
                     try:
                         val_float = float(dur_cycles)
@@ -97,7 +98,6 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                             duration_parts.append(f"{val_float} cycles")
                     except ValueError:
                         duration_parts.append(f"{dur_cycles} cycles")
-                # Handle ms
                 if pd.notnull(dur_ms):
                     try:
                         val_float = float(dur_ms)
@@ -175,42 +175,42 @@ def main():
     df_display.index = df_display.index + 1
     df_display.index.name = "No."
 
-    # --------------------------------------------------------------------
-    #    ADD PER-COLUMN FILTERS (NO extra libs) 
-    # --------------------------------------------------------------------
-    st.write("### Refine Results by Column")
-    st.info("Use the dropdowns below to filter each column. Deselect values to hide them. All columns are shown by default.")
-
-    # We’ll store the final filtered version in a variable
-    col_filtered_df = df_display.copy()
-
-    # For each column, show a multiselect of unique values. Default to all unique values selected.
-    for col in col_filtered_df.columns:
-        unique_vals = col_filtered_df[col].dropna().unique().tolist()
-        # Sort them to have a consistent display order
-        unique_vals = sorted(unique_vals, key=lambda x: str(x))
-        chosen_vals = st.multiselect(f"Filter Column: {col}", options=unique_vals, default=unique_vals)
-        # Filter the DataFrame
-        col_filtered_df = col_filtered_df[col_filtered_df[col].isin(chosen_vals)]
-
-        # If the DataFrame becomes empty, no need to continue
-        if col_filtered_df.empty:
-            break
-
-    # 6) Display the final table after per-column filters
+    # ---------------------------------------------------------------------
+    #    DISPLAY TABLE WITH AG-GRID "SET FILTER" PER COLUMN
+    # ---------------------------------------------------------------------
     st.header("Generated Test Plan")
-    if not col_filtered_df.empty:
+    if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
-        # Show the final filtered DataFrame
-        st.dataframe(col_filtered_df, use_container_width=True)
+        # Build the grid options so each column has a checkbox-based "Set Filter."
+        gb = GridOptionsBuilder.from_dataframe(df_display)
 
-        # Generate and display the test plan summary
+        # This line ensures every column uses AG Grid’s built-in “Set Filter.”
+        # The user gets a small filter icon in each column header that, when clicked,
+        # shows checkboxes for each distinct value in that column.
+        gb.configure_default_column(
+            filter="agSetColumnFilter",  # <--- the key config for checkbox filters
+            sortable=True,
+            resizable=True
+        )
+        grid_options = gb.build()
+
+        # Render the AG Grid table
+        AgGrid(
+            df_display,
+            gridOptions=grid_options,
+            theme="streamlit",          # or "light", "dark", "blue", "material"
+            enable_enterprise_modules=False,
+            allow_unsafe_jscode=True,
+            reload_data=True
+        )
+
+        # 6) Generate and display the test plan summary
         st.subheader("Organized Test Plan Summary")
-        summary = generate_summary(col_filtered_df)
+        summary = generate_summary(df_display)
         st.markdown(summary)
     else:
-        st.warning("No matching test cases found with the current column filters.")
+        st.warning("No matching test cases found. Please modify your selections.")
 
 if __name__ == "__main__":
     main()
