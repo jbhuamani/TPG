@@ -178,15 +178,36 @@ def main():
     # Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
+    # ---------------------------------------------------------------------
+    #  ONE-BASED ROW NUMBERING
+    # ---------------------------------------------------------------------
+    # Approach #1: Use the DataFrame index for numbering
+    df_display = filtered_df.copy()
+    # Reset the index to remove any pre-existing row labels
+    df_display.reset_index(drop=True, inplace=True)
+    # Shift the index by 1
+    df_display.index = df_display.index + 1
+    # Give a name to the index column
+    df_display.index.name = "No."
+
+    # If you prefer a separate "No." column instead of using the index, do this instead:
+    #
+    # df_display = filtered_df.copy()
+    # df_display.reset_index(drop=True, inplace=True)
+    # df_display.insert(0, "No.", range(1, len(df_display) + 1))
+    #
+    # (Then display df_display and perhaps pass index=False if you want to hide the normal index.)
+
     # Display the table and the summary
     st.header("Generated Test Plan")
-    if not filtered_df.empty:
+    if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
-        st.dataframe(filtered_df, use_container_width=True)
+        # Show the DataFrame with 1-based indexing
+        st.dataframe(df_display, use_container_width=True)
 
         # Generate and display the test plan summary
         st.subheader("Organized Test Plan Summary")
-        summary = generate_summary(filtered_df)
+        summary = generate_summary(df_display)
         st.markdown(summary)
     else:
         st.warning("No matching test cases found. Please modify your selections.")
