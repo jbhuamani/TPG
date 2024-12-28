@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# IMPORTANT: This import requires "pip install streamlit-aggrid"
+# IMPORTANT: You must have streamlit-aggrid installed (pip install streamlit-aggrid)
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 @st.cache_data
@@ -169,37 +169,35 @@ def main():
     # 4) Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
-    # 5) One-based row numbering
+    # ---------------------------------------------------------------------
+    #  ONE-BASED ROW NUMBERING AS A COLUMN
+    # ---------------------------------------------------------------------
     df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
-    df_display.index = df_display.index + 1
-    df_display.index.name = "No."
+    # Insert a "No." column on the far left, counting from 1..n
+    df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
-        # ------------------------------------------
+        # -------------------------------------------
         #   AG-GRID: PER-COLUMN CHECKBOX FILTER
-        # ------------------------------------------
-        # Build the grid options so each column has a checkbox-based "Set Filter."
+        # -------------------------------------------
         gb = GridOptionsBuilder.from_dataframe(df_display)
 
-        # "agSetColumnFilter" displays a filter icon in each column header,
-        # which shows checkboxes for each distinct value.
+        # "agSetColumnFilter" triggers the checkbox-based filter in each column
         gb.configure_default_column(
-            filter="agSetColumnFilter",  # <--- This is key for the checkbox filters
+            filter="agSetColumnFilter",  
             sortable=True,
             resizable=True
         )
-
         grid_options = gb.build()
 
-        # Display the data with AG Grid
         AgGrid(
             df_display,
             gridOptions=grid_options,
-            theme="streamlit",  # "light", "dark", "blue", "material" also possible
+            theme="streamlit",  # or "light", "dark", etc.
             enable_enterprise_modules=False,
             allow_unsafe_jscode=True,
             reload_data=True
