@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
 
-# 1) IMPORT AGGRID LIBRARIES
+# 1) Import st-aggrid libraries
 from st_aggrid import AgGrid, GridOptionsBuilder
 
+# Load the updated database
 @st.cache_data
 def load_data():
-    """
-    Loads the updated database from a public Google Sheets link.
-    """
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
     try:
         data = pd.read_csv(url)
@@ -17,6 +15,7 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
+# Filter the database based on user selections
 def filter_database(
     df: pd.DataFrame,
     product_features=None,
@@ -40,6 +39,7 @@ def filter_database(
         df = df[df['VOLTAGES'].isin(voltages)]
     return df
 
+# Generate a more organized summary of the test plan
 def generate_summary(filtered_df: pd.DataFrame) -> str:
     """
     Creates a structured, more readable summary of the test plan
@@ -66,7 +66,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     ac_vdi_df = filtered_df[filtered_df['TEST_TYPE'] == "AC VDI"]
     if not ac_vdi_df.empty:
         output_lines.append("### AC VDI Tests")
-        # Group AC VDI by (Applicability, Frequency, Crossing)
+        # Group AC VDI by (ACV_Apply, ACV_Freq_[Hz], ACV_Cross_[deg])
         grouped_ac_vdi = ac_vdi_df.groupby(["ACV_Apply", "ACV_Freq_[Hz]", "ACV_Cross_[deg]"], dropna=False)
 
         for (applicability, freq, crossing), group_df in grouped_ac_vdi:
@@ -75,10 +75,9 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                 f"- **Applicability**: {applicability}, **Frequency**: {freq} Hz, **Crossing**: {crossing}°"
             )
 
-            # Within each group, further group by (Reduction, Duration cycles, Duration ms)
+            # Within each group, group by (Reduction, Duration cycles, Duration ms)
             sub_group = group_df.groupby(["ACV_Red_[%]", "ACV_Dur_[Cycles]", "ACV_Dur_[ms]"], dropna=False)
             for (reduction, dur_cycles, dur_ms), row_df in sub_group:
-                # Collect unique criteria in this sub-group
                 all_criteria = sorted(row_df["ACV_Criteria"].dropna().unique())
                 criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
 
@@ -89,6 +88,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                 if pd.notnull(dur_cycles):
                     try:
                         val_float = float(dur_cycles)
+                        # If it's effectively an integer (e.g. 5.0), display as int
                         if val_float.is_integer():
                             duration_parts.append(f"{int(val_float)} cycles")
                         else:
@@ -107,13 +107,11 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                     except ValueError:
                         duration_parts.append(f"{dur_ms} ms")
 
-                # If no valid duration was found
                 if not duration_parts:
                     duration_parts = ["-"]
 
                 duration_str = ", ".join(duration_parts)
 
-                # Sub-bullet for each reduction entry
                 output_lines.append(
                     f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
@@ -124,6 +122,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
 
+# Remove empty columns
 def remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Removes columns that are entirely empty (NaN).
@@ -177,33 +176,33 @@ def main():
     # Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
-    # Make a copy for display and set up 1-based indexing
+    # ---------------------------------------------------------------------
+    #  ONE-BASED ROW NUMBERING
+    # ---------------------------------------------------------------------
     df_display = filtered_df.copy()
+    # Reset the index to remove any pre-existing row labels
     df_display.reset_index(drop=True, inplace=True)
+    # Shift the index by 1
     df_display.index = df_display.index + 1
+    # Give a name to the index column
     df_display.index.name = "No."
 
-    # -------------------------------
-    #    DISPLAY WITH ST-AGGRID
-    # -------------------------------
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
-        # 2) BUILD THE GRID OPTIONS WITH PER-COLUMN FILTERS
+        # 2) Build the grid options with per-column filters
         gb = GridOptionsBuilder.from_dataframe(df_display)
-        # Turn on filters, sorting, etc.
         gb.configure_default_column(filter=True, sortable=True, resizable=True)
-        # Build final grid options
         gridOptions = gb.build()
 
-        # 3) RENDER THE AGGRID TABLE
+        # 3) Render the AgGrid table with column filters
         AgGrid(
             df_display,
             gridOptions=gridOptions,
-            theme="streamlit",  # Other themes: "light", "dark", "blue", "material"
-            enable_enterprise_modules=False,  # Set True if you have a license or want enterprise features
-            allow_unsafe_jscode=True,         # For potential advanced customizations
+            theme="streamlit",        # you can pick "light", "dark", "blue", "material", etc.
+            enable_enterprise_modules=False,
+            allow_unsafe_jscode=True,
             reload_data=True
         )
 
