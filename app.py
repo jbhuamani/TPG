@@ -169,35 +169,62 @@ def main():
     # 4) Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
-    # ---------------------------------------------------------------------
-    #  ONE-BASED ROW NUMBERING AS A COLUMN
-    # ---------------------------------------------------------------------
-    df_display = filtered_df.copy()
-    df_display.reset_index(drop=True, inplace=True)
-    # Insert a "No." column on the far left, counting from 1..n
-    df_display.insert(0, "No.", range(1, len(df_display) + 1))
+    # --------------------------------------------------------------
+    #  COMMENTED-OUT (OLD) CODE: Inserting "No." in the DataFrame
+    #  This caused the numbering to be "stuck" when sorting other cols.
+    # --------------------------------------------------------------
+    # df_display = filtered_df.copy()
+    # df_display.reset_index(drop=True, inplace=True)
+    # df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
+    # --------------------------------------------------------------
+    #  NEW APPROACH: Just use the data as-is; let AG Grid do dynamic
+    #  numbering on the front end via "valueGetter: node.rowIndex + 1"
+    # --------------------------------------------------------------
+    df_display = filtered_df.copy()  # no "No." column in the actual data
+    df_display.reset_index(drop=True, inplace=True)
+
+    # Display the table + summary
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
-        # -------------------------------------------
-        #   AG-GRID: PER-COLUMN CHECKBOX FILTER
-        # -------------------------------------------
+        # Build the grid from your data
         gb = GridOptionsBuilder.from_dataframe(df_display)
 
-        # "agSetColumnFilter" triggers the checkbox-based filter in each column
+        # We enable the checkbox-based Set Filter
         gb.configure_default_column(
-            filter="agSetColumnFilter",  
+            filter="agSetColumnFilter",
             sortable=True,
             resizable=True
         )
+
+        # Build final grid options
         grid_options = gb.build()
 
+        # -------------------------------------------
+        #   Insert a "No." column at the left,
+        #   using AG Grid's row index
+        # -------------------------------------------
+        # We do this *after* building from the DataFrame
+        # because "No." is not a real DataFrame column.
+        new_col_def = {
+            "headerName": "No.",
+            "field": "No.",
+            "valueGetter": "node.rowIndex + 1",  # 1-based dynamic numbering
+            "filter": False,
+            "sortable": False,
+            "pinned": "left"
+        }
+        # Insert at the front of the column definitions
+        if "columnDefs" in grid_options:
+            grid_options["columnDefs"].insert(0, new_col_def)
+
+        # Render the table
         AgGrid(
             df_display,
             gridOptions=grid_options,
-            theme="streamlit",  # or "light", "dark", etc.
+            theme="streamlit",  
             enable_enterprise_modules=False,
             allow_unsafe_jscode=True,
             reload_data=True
