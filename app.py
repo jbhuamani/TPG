@@ -1,9 +1,14 @@
 import streamlit as st
 import pandas as pd
 
-# Load the updated database
+# 1) IMPORT AGGRID LIBRARIES
+from st_aggrid import AgGrid, GridOptionsBuilder
+
 @st.cache_data
 def load_data():
+    """
+    Loads the updated database from a public Google Sheets link.
+    """
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-dcp7RM6MkGU32oBBR3afCt5ujMrlNeOVKtvXltvsvr7GbkqsJwHIDpu0Z73hYDwF8rDMzFbTnoc5/pub?gid=1351032631&single=true&output=csv"
     try:
         data = pd.read_csv(url)
@@ -12,7 +17,6 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
-# Filter the database based on user selections
 def filter_database(
     df: pd.DataFrame,
     product_features=None,
@@ -36,7 +40,6 @@ def filter_database(
         df = df[df['VOLTAGES'].isin(voltages)]
     return df
 
-# Generate a more organized summary of the test plan
 def generate_summary(filtered_df: pd.DataFrame) -> str:
     """
     Creates a structured, more readable summary of the test plan
@@ -86,13 +89,11 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                 if pd.notnull(dur_cycles):
                     try:
                         val_float = float(dur_cycles)
-                        # If it's effectively an integer (e.g., 5.0), display as integer
                         if val_float.is_integer():
                             duration_parts.append(f"{int(val_float)} cycles")
                         else:
                             duration_parts.append(f"{val_float} cycles")
                     except ValueError:
-                        # If it's not numeric
                         duration_parts.append(f"{dur_cycles} cycles")
 
                 # Handle milliseconds
@@ -123,14 +124,12 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
 
-# Remove empty columns
 def remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Removes columns that are entirely empty (NaN).
     """
     return df.dropna(how="all", axis=1)
 
-# Main application
 def main():
     st.set_page_config(layout="wide")
     st.title("Enhanced EMC Test Plan Generator")
@@ -178,32 +177,35 @@ def main():
     # Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
-    # ---------------------------------------------------------------------
-    #  ONE-BASED ROW NUMBERING
-    # ---------------------------------------------------------------------
-    # Approach #1: Use the DataFrame index for numbering
+    # Make a copy for display and set up 1-based indexing
     df_display = filtered_df.copy()
-    # Reset the index to remove any pre-existing row labels
     df_display.reset_index(drop=True, inplace=True)
-    # Shift the index by 1
     df_display.index = df_display.index + 1
-    # Give a name to the index column
     df_display.index.name = "No."
 
-    # If you prefer a separate "No." column instead of using the index, do this instead:
-    #
-    # df_display = filtered_df.copy()
-    # df_display.reset_index(drop=True, inplace=True)
-    # df_display.insert(0, "No.", range(1, len(df_display) + 1))
-    #
-    # (Then display df_display and perhaps pass index=False if you want to hide the normal index.)
-
-    # Display the table and the summary
+    # -------------------------------
+    #    DISPLAY WITH ST-AGGRID
+    # -------------------------------
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
-        # Show the DataFrame with 1-based indexing
-        st.dataframe(df_display, use_container_width=True)
+
+        # 2) BUILD THE GRID OPTIONS WITH PER-COLUMN FILTERS
+        gb = GridOptionsBuilder.from_dataframe(df_display)
+        # Turn on filters, sorting, etc.
+        gb.configure_default_column(filter=True, sortable=True, resizable=True)
+        # Build final grid options
+        gridOptions = gb.build()
+
+        # 3) RENDER THE AGGRID TABLE
+        AgGrid(
+            df_display,
+            gridOptions=gridOptions,
+            theme="streamlit",  # Other themes: "light", "dark", "blue", "material"
+            enable_enterprise_modules=False,  # Set True if you have a license or want enterprise features
+            allow_unsafe_jscode=True,         # For potential advanced customizations
+            reload_data=True
+        )
 
         # Generate and display the test plan summary
         st.subheader("Organized Test Plan Summary")
