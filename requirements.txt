@@ -1,5 +1,7 @@
 streamlit
 streamlit-aggrid
 pandas
+numpy
 pytesseract
 Pillow
+regex
