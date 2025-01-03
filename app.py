@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# IMPORTANT: You must have streamlit-aggrid installed (pip install streamlit-aggrid)
+# IMPORTANT: install streamlit-aggrid (pip install streamlit-aggrid)
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 # Import the camera tool from camera_tool.py
@@ -70,7 +70,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
             criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
             output_lines.append(f"- Frequency: {freq} Hz, Level: {level}%, Criteria: {criteria_str}")
-        output_lines.append("")  # Blank line separator
+        output_lines.append("")  # blank line separator
 
     # --- AC VDI Section ---
     ac_vdi_df = filtered_df[filtered_df['TEST_TYPE'] == "AC VDI"]
@@ -88,7 +88,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                 all_criteria = sorted(row_df["ACV_Criteria"].dropna().unique())
                 criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
 
-                # Safely build a duration string
+                # Build a duration string
                 duration_parts = []
                 if pd.notnull(dur_cycles):
                     try:
@@ -99,6 +99,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                             duration_parts.append(f"{val_float} cycles")
                     except ValueError:
                         duration_parts.append(f"{dur_cycles} cycles")
+
                 if pd.notnull(dur_ms):
                     try:
                         val_float = float(dur_ms)
@@ -117,7 +118,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                     f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
 
-            output_lines.append("")  # Blank line separator
+            output_lines.append("")  # blank line separator
 
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
@@ -127,13 +128,13 @@ def main():
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options in the sidebar to generate a test plan based on your requirements.")
 
-    # Load data using secrets
+    # 1) Load data using secrets
     df = load_data()
     if df.empty:
         st.error("No data available. Please check your database connection.")
         return
 
-    # Sidebar multi-select menus
+    # 2) Sidebar multi-select menus
     st.sidebar.header("Filter Options")
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
@@ -156,11 +157,11 @@ def main():
         df['VOLTAGES'].dropna().unique().tolist()
     )
 
-    # Add a checkbox to show/hide the camera scanner
+    # 3) Optionally show camera
     st.sidebar.write("---")
     use_scanner = st.sidebar.checkbox("Scan Test Equipment")
 
-    # Apply filters
+    # 4) Apply filters
     filtered_df = filter_database(
         df,
         product_features=product_features,
@@ -171,7 +172,7 @@ def main():
     )
     filtered_df = remove_empty_columns(filtered_df)
 
-    # Let AG Grid do dynamic numbering
+    # AG Grid dynamic numbering
     df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
 
@@ -194,7 +195,7 @@ def main():
         )
         grid_options = gb.build()
 
-        # Insert a "No." column dynamically for row numbering
+        # Insert a "No." column for row numbering
         no_col_def = {
             "headerName": "No.",
             "field": "No.",
@@ -209,7 +210,7 @@ def main():
         AgGrid(
             df_display,
             gridOptions=grid_options,
-            theme="streamlit",  
+            theme="streamlit",
             enable_enterprise_modules=False,
             allow_unsafe_jscode=True,
             reload_data=True
