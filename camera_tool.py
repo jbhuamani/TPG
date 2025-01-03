@@ -33,30 +33,31 @@ def camera_data_collection():
             if number not in st.session_state["cis_numbers"]:
                 st.session_state["cis_numbers"].append(number)
 
-    # 4) Let the user remove numbers, then show vertical & horizontal lists
+    # 4) Let user remove numbers, then show vertical & horizontal lists
 
-    # Make a copy so we can see them all before we remove any
+    # We'll iterate over a local copy so we can show them first, then remove
     numbers_copy = st.session_state["cis_numbers"].copy()
     indices_to_delete = []
 
     st.write("### 1) Vertical List (with remove buttons)")
 
-    # We want [ X | number ] side by side
-    # so let's define columns as [1,4] = narrower for the X, wider for the number
+    # Make the left column narrower for "X" and the right column wide for the number
     for idx, num in enumerate(numbers_copy):
-        cols = st.columns([1, 4])  # X on the left, number on the right
-        with cols[0]:
+        col_left, col_right = st.columns([1, 10])  
+        # '1' is a small portion for the X, '10' is larger portion for the number
+
+        with col_left:
             if st.button("X", key=f"del_{idx}"):
                 indices_to_delete.append(idx)
-        with cols[1]:
+        with col_right:
             st.write(num)
 
-    # Remove them from session_state
+    # Remove them from session_state if user clicked "X"
     if indices_to_delete:
         for i in sorted(indices_to_delete, reverse=True):
             st.session_state["cis_numbers"].pop(i)
 
-    # Now reflect the updated list in a horizontal format
+    # Now show the updated horizontal list
     st.write("### 2) Horizontal (comma-separated) List")
     if st.session_state["cis_numbers"]:
         csv_list = ",".join(st.session_state["cis_numbers"])
