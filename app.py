@@ -4,6 +4,9 @@ import pandas as pd
 # IMPORTANT: You must have streamlit-aggrid installed (pip install streamlit-aggrid)
 from st_aggrid import AgGrid, GridOptionsBuilder
 
+# 1) Import your new camera tool
+from camera_tool import camera_data_collection
+
 @st.cache_data
 def load_data():
     """
@@ -131,7 +134,7 @@ def main():
         st.error("No data available. Please check your database connection.")
         return
 
-    # 2) Sidebar multi-select menus
+    # Sidebar filters
     st.sidebar.header("Filter Options")
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
@@ -154,7 +157,11 @@ def main():
         df['VOLTAGES'].dropna().unique().tolist()
     )
 
-    # 3) Apply sidebar filters
+    # NEW: Let the user optionally access the camera scanner from the sidebar
+    st.sidebar.write("---")
+    use_scanner = st.sidebar.checkbox("Scan Test Equipment")
+
+    # 3) Apply filters
     filtered_df = filter_database(
         df,
         product_features=product_features,
@@ -173,25 +180,26 @@ def main():
     df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
 
+    # If user wants the camera scanning tool:
+    if use_scanner:
+        st.write("---")
+        camera_data_collection()  # <--- from camera_tool.py
+        st.write("---")
+
     # Display the table + summary
     st.header("Generated Test Plan")
     if not df_display.empty:
         st.write("Below are the test cases matching your selection:")
 
-        # Build the grid from your data
         gb = GridOptionsBuilder.from_dataframe(df_display)
-
-        # Enable the checkbox-based Set Filter
         gb.configure_default_column(
             filter="agSetColumnFilter",
             sortable=True,
             resizable=True
         )
-
-        # Build final grid options
         grid_options = gb.build()
 
-        # Insert a "No." column dynamically
+        # Insert a "No." column dynamically for row numbering
         new_col_def = {
             "headerName": "No.",
             "field": "No.",
@@ -203,7 +211,6 @@ def main():
         if "columnDefs" in grid_options:
             grid_options["columnDefs"].insert(0, new_col_def)
 
-        # Render the table
         AgGrid(
             df_display,
             gridOptions=grid_options,
@@ -213,7 +220,6 @@ def main():
             reload_data=True
         )
 
-        # Generate and display the test plan summary
         st.subheader("Organized Test Plan Summary")
         summary = generate_summary(df_display)
         st.markdown(summary)
