@@ -128,13 +128,13 @@ def main():
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options in the sidebar to generate a test plan based on your requirements.")
 
-    # 1) Load data using secrets
+    # Load data using secrets
     df = load_data()
     if df.empty:
         st.error("No data available. Please check your database connection.")
         return
 
-    # 2) Sidebar multi-select menus
+    # Sidebar multi-select menus
     st.sidebar.header("Filter Options")
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
@@ -161,7 +161,7 @@ def main():
     st.sidebar.write("---")
     use_scanner = st.sidebar.checkbox("Scan Test Equipment")
 
-    # 3) Apply filters
+    # Apply filters
     filtered_df = filter_database(
         df,
         product_features=product_features,
