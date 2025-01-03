@@ -70,7 +70,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
             criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
             output_lines.append(f"- Frequency: {freq} Hz, Level: {level}%, Criteria: {criteria_str}")
-        output_lines.append("")  # Blank line separator
+        output_lines.append("")  # blank line separator
 
     # --- AC VDI Section ---
     ac_vdi_df = filtered_df[filtered_df['TEST_TYPE'] == "AC VDI"]
@@ -118,7 +118,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                     f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
 
-            output_lines.append("")  # Blank line separator
+            output_lines.append("")  # blank line separator
 
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
