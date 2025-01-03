@@ -4,7 +4,7 @@ import pandas as pd
 # IMPORTANT: You must have streamlit-aggrid installed (pip install streamlit-aggrid)
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# 1) Import your new camera tool
+# Import the camera tool from camera_tool.py
 from camera_tool import camera_data_collection
 
 @st.cache_data
@@ -113,7 +113,6 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                     duration_parts = ["-"]
 
                 duration_str = ", ".join(duration_parts)
-
                 output_lines.append(
                     f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
@@ -128,13 +127,13 @@ def main():
     st.title("Enhanced EMC Test Plan Generator")
     st.write("Select options in the sidebar to generate a test plan based on your requirements.")
 
-    # 1) Load the data using secrets
+    # Load data using secrets
     df = load_data()
     if df.empty:
         st.error("No data available. Please check your database connection.")
         return
 
-    # Sidebar filters
+    # Sidebar multi-select menus
     st.sidebar.header("Filter Options")
     product_features = st.sidebar.multiselect(
         "Select PRODUCT_FEATURE:",
@@ -157,11 +156,11 @@ def main():
         df['VOLTAGES'].dropna().unique().tolist()
     )
 
-    # NEW: Let the user optionally access the camera scanner from the sidebar
+    # Add a checkbox to show/hide the camera scanner
     st.sidebar.write("---")
     use_scanner = st.sidebar.checkbox("Scan Test Equipment")
 
-    # 3) Apply filters
+    # Apply filters
     filtered_df = filter_database(
         df,
         product_features=product_features,
@@ -170,20 +169,16 @@ def main():
         voltage_types=voltage_types,
         voltages=voltages
     )
-
-    # 4) Remove empty columns
     filtered_df = remove_empty_columns(filtered_df)
 
-    # --------------------------------------------------------------
-    #  Let AG Grid do dynamic numbering
-    # --------------------------------------------------------------
+    # Let AG Grid do dynamic numbering
     df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
 
-    # If user wants the camera scanning tool:
+    # If user wants the scanning tool, show it
     if use_scanner:
         st.write("---")
-        camera_data_collection()  # <--- from camera_tool.py
+        camera_data_collection()  # from camera_tool.py
         st.write("---")
 
     # Display the table + summary
@@ -200,7 +195,7 @@ def main():
         grid_options = gb.build()
 
         # Insert a "No." column dynamically for row numbering
-        new_col_def = {
+        no_col_def = {
             "headerName": "No.",
             "field": "No.",
             "valueGetter": "node.rowIndex + 1",
@@ -209,7 +204,7 @@ def main():
             "pinned": "left"
         }
         if "columnDefs" in grid_options:
-            grid_options["columnDefs"].insert(0, new_col_def)
+            grid_options["columnDefs"].insert(0, no_col_def)
 
         AgGrid(
             df_display,
