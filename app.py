@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# IMPORTANT: install streamlit-aggrid (pip install streamlit-aggrid)
+# IMPORTANT: You must have streamlit-aggrid installed (pip install streamlit-aggrid)
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 # Import the camera tool from camera_tool.py
@@ -70,7 +70,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
             all_criteria = sorted(group_df["DCR_Criteria"].dropna().unique())
             criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
             output_lines.append(f"- Frequency: {freq} Hz, Level: {level}%, Criteria: {criteria_str}")
-        output_lines.append("")  # blank line separator
+        output_lines.append("")  # Blank line separator
 
     # --- AC VDI Section ---
     ac_vdi_df = filtered_df[filtered_df['TEST_TYPE'] == "AC VDI"]
@@ -88,7 +88,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                 all_criteria = sorted(row_df["ACV_Criteria"].dropna().unique())
                 criteria_str = ", ".join(all_criteria) if all_criteria else "TBD"
 
-                # Build a duration string
+                # Safely build a duration string
                 duration_parts = []
                 if pd.notnull(dur_cycles):
                     try:
@@ -118,7 +118,7 @@ def generate_summary(filtered_df: pd.DataFrame) -> str:
                     f"   - **Reduction**: {reduction}%, **Duration**: {duration_str}, **Criteria**: {criteria_str}"
                 )
 
-            output_lines.append("")  # blank line separator
+            output_lines.append("")  # Blank line separator
 
     final_summary = "\n".join(output_lines).strip()
     return final_summary if final_summary else "No test plan available for the selected criteria."
@@ -157,11 +157,11 @@ def main():
         df['VOLTAGES'].dropna().unique().tolist()
     )
 
-    # 3) Optionally show camera
+    # Add a checkbox to show/hide the camera scanner
     st.sidebar.write("---")
     use_scanner = st.sidebar.checkbox("Scan Test Equipment")
 
-    # 4) Apply filters
+    # 3) Apply filters
     filtered_df = filter_database(
         df,
         product_features=product_features,
@@ -172,7 +172,7 @@ def main():
     )
     filtered_df = remove_empty_columns(filtered_df)
 
-    # AG Grid dynamic numbering
+    # Let AG Grid do dynamic numbering
     df_display = filtered_df.copy()
     df_display.reset_index(drop=True, inplace=True)
 
