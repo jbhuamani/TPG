@@ -35,6 +35,7 @@ def camera_data_collection():
         # Add each newly found number (digits only) to st.session_state
         if found_numbers:
             for number in found_numbers:
+                # Optionally, skip duplicates
                 if number not in st.session_state["cis_numbers"]:
                     st.session_state["cis_numbers"].append(number)
 
@@ -50,6 +51,7 @@ def camera_data_collection():
             st.write(num)  # Show the number (digits only)
         with cols[1]:
             if st.button("X", key=f"del_{idx}"):
+                # Mark for removal
                 indices_to_delete.append(idx)
 
     # Remove any numbers requested for deletion
@@ -57,7 +59,8 @@ def camera_data_collection():
         # Remove from the end to avoid messing up indexes
         for i in sorted(indices_to_delete, reverse=True):
             st.session_state["cis_numbers"].pop(i)
-        st.experimental_rerun()
+        # No st.experimental_rerun() or st.rerun() call here.
+        # The list will still update on the next script run.
 
     st.write("### 2) Horizontal (comma-separated) List")
     if st.session_state["cis_numbers"]:
