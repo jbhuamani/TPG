@@ -6,9 +6,9 @@ import io
 
 def camera_data_collection():
     """
-    Use camera to scan images for "CIS-" references.
-    Persist scanned CIS numbers (only digits) in st.session_state,
-    so they stay even if the user clears the camera photo.
+    Use camera to scan images for "CIS-####" references.
+    Persist scanned digits in st.session_state, so they remain
+    even if the user clears the camera photo.
     """
 
     st.subheader("Test Equipment Scanner")
@@ -17,54 +17,47 @@ def camera_data_collection():
     if "cis_numbers" not in st.session_state:
         st.session_state["cis_numbers"] = []
 
-    # 2) Camera input: returns an image or None
+    # 2) Camera input widget
     captured_image = st.camera_input("Take a picture to scan")
 
     # 3) If a photo is captured, run OCR to find "CIS-####" patterns
     if captured_image is not None:
-        # Convert the uploaded image to a Pillow Image
         image = Image.open(io.BytesIO(captured_image.getvalue()))
-
-        # Perform OCR (pytesseract requires Tesseract installed)
         ocr_text = pytesseract.image_to_string(image)
 
-        # Regex: find “CIS-” followed by digits
         pattern = r"CIS-(\d+)"
         found_numbers = re.findall(pattern, ocr_text)
 
-        # Add each newly found number (digits only) to st.session_state
-        if found_numbers:
-            for number in found_numbers:
-                # Optionally, skip duplicates
-                if number not in st.session_state["cis_numbers"]:
-                    st.session_state["cis_numbers"].append(number)
+        # Add new digits to the list (skip duplicates if desired)
+        for number in found_numbers:
+            if number not in st.session_state["cis_numbers"]:
+                st.session_state["cis_numbers"].append(number)
 
-    # 4) Display the stored CIS numbers in two ways
+    # 4) Let user remove numbers, then show vertical & horizontal lists
+
+    # First, handle removal requests. We'll build a local copy
+    # so we can modify st.session_state only after we detect all removals.
+    numbers_copy = st.session_state["cis_numbers"].copy()
+    indices_to_delete = []
 
     st.write("### 1) Vertical List (with remove buttons)")
-
-    # We'll gather indices for removal if the user clicks an X button
-    indices_to_delete = []
-    for idx, num in enumerate(st.session_state["cis_numbers"]):
-        cols = st.columns([4, 1])  
+    for idx, num in enumerate(numbers_copy):
+        cols = st.columns([4, 1])
         with cols[0]:
-            st.write(num)  # Show the number (digits only)
+            st.write(num)
         with cols[1]:
             if st.button("X", key=f"del_{idx}"):
-                # Mark for removal
                 indices_to_delete.append(idx)
 
-    # Remove any numbers requested for deletion
+    # Remove them from session_state
     if indices_to_delete:
-        # Remove from the end to avoid messing up indexes
         for i in sorted(indices_to_delete, reverse=True):
             st.session_state["cis_numbers"].pop(i)
-        # No st.experimental_rerun() or st.rerun() call here.
-        # The list will still update on the next script run.
+
+    # Now reflect the updated list in both vertical & horizontal forms
 
     st.write("### 2) Horizontal (comma-separated) List")
     if st.session_state["cis_numbers"]:
-        # Join them with commas, no spaces
         csv_list = ",".join(st.session_state["cis_numbers"])
         st.write(csv_list)
     else:
