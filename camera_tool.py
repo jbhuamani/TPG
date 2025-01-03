@@ -9,18 +9,21 @@ def camera_data_collection():
     Use camera to scan images for "CIS-####" references.
     Persist scanned digits in st.session_state, so they remain
     even if the user clears the camera photo.
+
+    Now each CIS number in the vertical list is a clickable button:
+    when pressed, that number is removed from the list.
     """
 
     st.subheader("Test Equipment Scanner")
 
-    # 1) Initialize the list in session_state if it doesn't exist yet
+    # 1) Initialize the list in session_state if not present
     if "cis_numbers" not in st.session_state:
         st.session_state["cis_numbers"] = []
 
-    # 2) Camera input widget
+    # 2) Camera input
     captured_image = st.camera_input("Take a picture to scan")
 
-    # 3) If a photo is captured, run OCR to find "CIS-####" patterns
+    # 3) If a photo is captured, do OCR and find CIS-#### patterns
     if captured_image is not None:
         image = Image.open(io.BytesIO(captured_image.getvalue()))
         ocr_text = pytesseract.image_to_string(image)
@@ -28,36 +31,32 @@ def camera_data_collection():
         pattern = r"CIS-(\d+)"
         found_numbers = re.findall(pattern, ocr_text)
 
-        # Add new digits to the list (skip duplicates if desired)
+        # Append new digits to session_state, skipping duplicates if desired
         for number in found_numbers:
             if number not in st.session_state["cis_numbers"]:
                 st.session_state["cis_numbers"].append(number)
 
-    # 4) Let user remove numbers, then show vertical & horizontal lists
+    # 4) Display the list in two ways:
+    #    (A) Vertical List -> each CIS number is now a button that deletes itself
+    #    (B) Horizontal comma-separated
 
-    # We'll iterate over a local copy so we can show them first, then remove
+    st.write("### 1) Vertical List (each CIS digit is a clickable button)")
+
+    # local copy to display them all
     numbers_copy = st.session_state["cis_numbers"].copy()
     indices_to_delete = []
 
-    st.write("### 1) Vertical List (with remove buttons)")
-
-    # Make the left column narrower for "X" and the right column wide for the number
     for idx, num in enumerate(numbers_copy):
-        col_left, col_right = st.columns([1, 10])  
-        # '1' is a small portion for the X, '10' is larger portion for the number
+        # Each 'number' is itself a button. If clicked, remove that item.
+        if st.button(str(num), key=f"cis_btn_{idx}"):
+            # Mark it for deletion
+            indices_to_delete.append(idx)
 
-        with col_left:
-            if st.button("X", key=f"del_{idx}"):
-                indices_to_delete.append(idx)
-        with col_right:
-            st.write(num)
-
-    # Remove them from session_state if user clicked "X"
+    # Remove any numbers user clicked
     if indices_to_delete:
         for i in sorted(indices_to_delete, reverse=True):
             st.session_state["cis_numbers"].pop(i)
 
-    # Now show the updated horizontal list
     st.write("### 2) Horizontal (comma-separated) List")
     if st.session_state["cis_numbers"]:
         csv_list = ",".join(st.session_state["cis_numbers"])
